@@ -65,16 +65,6 @@ window.PageSentinelAuditEngine = {
     } else {
       // Single URL mode (with auto-crawl)
       urlsToAudit = [url];
-      
-      // Check if URL matches a pre-loaded preset for instant fidelity demo
-      for (const [key, preset] of Object.entries(window.PAGE_SENTINEL_PRESETS || {})) {
-        if (url.trim().toLowerCase() === preset.targetUrl.toLowerCase() || 
-           (url.includes('localhost') && key === 'localhost') ||
-           (url.includes('broken') && key === 'demo-broken')) {
-          log(`Matching demo configuration profile [${preset.name}]`, 'info');
-          return await this.simulateLiveAuditFromPreset(preset, focus, log, onProgress);
-        }
-      }
 
       if (crawlSitemap) {
         log(`Discovering sitemap.xml / robots.txt...`, 'info');
@@ -198,10 +188,7 @@ window.PageSentinelAuditEngine = {
 
     } catch (err) {
       log(`Error during audit: ${err.message}`, 'error');
-      // Fallback to sample dataset if live fetch is blocked by strict local browser security
-      log(`Engaging fallback diagnostic synthesis for domain...`, 'warning');
-      const fallbackPreset = window.PAGE_SENTINEL_PRESETS['asian-paints'];
-      return await this.simulateLiveAuditFromPreset({ ...fallbackPreset, targetUrl: url }, focus, log, onProgress);
+      throw err;
     }
   },
 
@@ -528,44 +515,6 @@ window.PageSentinelAuditEngine = {
         resolve({ isBroken: false, naturalWidth: 400, naturalHeight: 300 });
       }, 2500);
     });
-  },
-
-  /**
-   * Simulate realistic audit from pre-loaded dataset with realistic terminal delays
-   */
-  async simulateLiveAuditFromPreset(preset, focus, log, onProgress) {
-    log(`Initializing audit for ${preset.targetUrl}...`, 'info');
-    await this.delay(250);
-    log(`Focus mode: only ${focus.toUpperCase()} diagnostics will be reported.`, 'info');
-    await this.delay(200);
-    log(`Discovering sitemap...`, 'info');
-    await this.delay(350);
-    log(`Discovered ${preset.crawledPages?.length || 3} URL(s) via robots.txt. Auditing ${preset.crawledPages?.length || 3} page(s).`, 'info');
-    await this.delay(300);
-
-    const pages = preset.crawledPages || [{ url: preset.targetUrl, status: 200 }];
-    for (let i = 0; i < pages.length; i++) {
-      if (this.isCancelled) {
-        log(`Audit cancelled.`, 'warning');
-        break;
-      }
-      log(`Auditing pages... (${i + 1}/${pages.length}) – last: ${pages[i].url}`, 'info');
-      if (onProgress) onProgress(i + 1, pages.length);
-      await this.delay(250);
-    }
-
-    log(`Audited ${pages.length} page(s).`, 'info');
-    await this.delay(200);
-    log(`Writing reports...`, 'info');
-    await this.delay(200);
-    log(`Reports written.`, 'info');
-    await this.delay(150);
-    log(`Done. ${preset.summary.totalIssues} issue(s) found across ${pages.length} page(s).`, preset.summary.totalIssues > 0 ? 'warning' : 'success');
-
-    return {
-      ...preset,
-      focus: focus
-    };
   },
 
   parseSitemapXml(xmlString) {

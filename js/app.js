@@ -424,9 +424,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sourceMode === 'url') {
       let targetUrl = auditUrlInput.value.trim();
       if (!targetUrl) {
-        targetUrl = auditUrlInput.placeholder || 'http://localhost:8933/';
-        auditUrlInput.value = targetUrl;
-        updateClearBtn();
+        showToast('Please enter a target URL to audit.', 'error');
+        auditUrlInput.focus();
+        return;
       }
       if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
         targetUrl = 'https://' + targetUrl;
@@ -518,38 +518,54 @@ document.addEventListener('DOMContentLoaded', () => {
   // 11. Open Dashboard Modal
   openDashboardBtn.addEventListener('click', () => {
     if (!currentAuditResult) {
-      currentAuditResult = window.PAGE_SENTINEL_PRESETS['localhost'];
+      showToast('Please run an audit first.', 'warning');
+      return;
     }
     window.PageSentinelDashboard.open(currentAuditResult);
   });
 
   // 12. Export Report Handlers
   downloadExcelBtn.addEventListener('click', () => {
-    const data = currentAuditResult || window.PAGE_SENTINEL_PRESETS['localhost'];
-    window.PageSentinelExport.downloadExcel(data);
+    if (!currentAuditResult) {
+      showToast('Please run an audit first to export Excel.', 'warning');
+      return;
+    }
+    window.PageSentinelExport.downloadExcel(currentAuditResult);
     showToast('Downloading Excel report (.xlsx)...');
   });
 
   downloadCsvBtn.addEventListener('click', () => {
-    const data = currentAuditResult || window.PAGE_SENTINEL_PRESETS['localhost'];
-    window.PageSentinelExport.downloadCSV(data);
+    if (!currentAuditResult) {
+      showToast('Please run an audit first to export CSV.', 'warning');
+      return;
+    }
+    window.PageSentinelExport.downloadCSV(currentAuditResult);
     showToast('Downloading CSV report (.csv)...');
   });
 
   downloadJsonBtn.addEventListener('click', () => {
-    const data = currentAuditResult || window.PAGE_SENTINEL_PRESETS['localhost'];
-    window.PageSentinelExport.downloadJSON(data);
+    if (!currentAuditResult) {
+      showToast('Please run an audit first to export JSON.', 'warning');
+      return;
+    }
+    window.PageSentinelExport.downloadJSON(currentAuditResult);
     showToast('Downloading JSON report (.json)...');
   });
 
   downloadHtmlBtn.addEventListener('click', () => {
-    const data = currentAuditResult || window.PAGE_SENTINEL_PRESETS['localhost'];
-    window.PageSentinelExport.downloadHTMLReport(data);
+    if (!currentAuditResult) {
+      showToast('Please run an audit first to export HTML report.', 'warning');
+      return;
+    }
+    window.PageSentinelExport.downloadHTMLReport(currentAuditResult);
     showToast('Downloading HTML report...');
   });
 
   printReportBtn.addEventListener('click', () => {
-    if (!currentAuditResult) currentAuditResult = window.PAGE_SENTINEL_PRESETS['localhost'];
+    if (!currentAuditResult) {
+      showToast('Please run an audit first to print.', 'warning');
+      return;
+    }
     window.PageSentinelDashboard.open(currentAuditResult);
     setTimeout(() => {
       window.print();
@@ -582,23 +598,16 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/>/g, '&gt;');
   }
 
-  // Initial Reference State matching User's screenshot
+  // Initial Reference State: Clean Ready State
   function setInitialReferenceState() {
-    currentAuditResult = window.PAGE_SENTINEL_PRESETS['localhost'];
-    updateMetricsSummary(currentAuditResult);
+    metricPages.textContent = '0';
+    metricCritical.textContent = '0';
+    metricWarnings.textContent = '0';
+    metricTotal.textContent = '0';
 
     clearTerminal();
-    logTerminal('Focus mode: only Image diagnostics will be reported.', 'info');
-    logTerminal('Discovering sitemap...', 'info');
-    logTerminal('Discovered 3 URL(s) via robots.txt. Auditing 3 page(s).', 'info');
-    logTerminal('Auditing page(s)...', 'info');
-    logTerminal('Auditing pages... (1/3) – last: http://localhost:8933/page2', 'info');
-    logTerminal('Auditing pages... (2/3) – last: http://localhost:8933/page3', 'info');
-    logTerminal('Auditing pages... (3/3) – last: http://localhost:8933/', 'info');
-    logTerminal('Audited 3 page(s).', 'info');
-    logTerminal('Writing reports...', 'info');
-    logTerminal('Reports written.', 'info');
-    logTerminal('Done. 2 issue(s) found across 3 page(s).', 'warning');
+    logTerminal('Page Sentinel v1.0 diagnostic auditor ready.', 'info');
+    logTerminal('Select an audit source above (Single URL, Sitemap XML, Bulk File, or Add URLs) and click "Run Audit".', 'muted');
   }
 
   setInitialReferenceState();

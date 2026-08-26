@@ -99,7 +99,7 @@
                   type="text"
                   id="auditUrl"
                   class="text-input"
-                  placeholder="http://localhost:8933/"
+                  placeholder="https://example.com/"
                   value=""
                   autocomplete="off"
                   spellcheck="false"
@@ -527,8 +527,7 @@
 
           <div class="terminal-body" id="terminalOutput">
             <div class="terminal-line text-muted">
-              Ready. Select configuration above and click "Run Audit" or pick a
-              sample preset.
+              Page Sentinel ready. Enter a URL, sitemap XML, or upload a file and click "Run Audit".
             </div>
           </div>
         </section>
@@ -537,23 +536,23 @@
         <section class="card summary-card" id="summaryCard">
           <div class="metrics-grid">
             <div class="metric-box">
-              <div class="metric-value" id="metricPages">3</div>
+              <div class="metric-value" id="metricPages">0</div>
               <div class="metric-label">PAGES</div>
             </div>
             <div class="metric-box">
               <div class="metric-value text-critical" id="metricCritical">
-                1
+                0
               </div>
               <div class="metric-label">CRITICAL</div>
             </div>
             <div class="metric-box">
               <div class="metric-value text-warnings" id="metricWarnings">
-                1
+                0
               </div>
               <div class="metric-label">WARNINGS</div>
             </div>
             <div class="metric-box">
-              <div class="metric-value text-total" id="metricTotal">2</div>
+              <div class="metric-value text-total" id="metricTotal">0</div>
               <div class="metric-label">TOTAL ISSUES</div>
             </div>
           </div>
@@ -698,12 +697,12 @@
             <div>
               <h2 class="dash-title">Audit Diagnostic Report</h2>
               <div class="dash-subtitle">
-                <span id="dashTargetUrl">http://localhost:8933/</span>
+                <span id="dashTargetUrl">https://example.com/</span>
                 <span class="dash-dot-sep">•</span>
                 <span id="dashAuditTimestamp">Just now</span>
                 <span class="dash-dot-sep">•</span>
                 <span class="badge badge-focus" id="dashFocusBadge"
-                  >IMAGE DIAGNOSTICS</span
+                  >FULL DIAGNOSTICS</span
                 >
               </div>
             </div>
@@ -1023,7 +1022,6 @@
     <div id="toastContainer" class="toast-container"></div>
 
     <!-- Application Logic Scripts -->
-    <script src="js/presets.js"></script>
     <script src="js/exportHelper.js"></script>
     <script src="js/auditEngine.js"></script>
     <script src="js/dashboard.js"></script>
