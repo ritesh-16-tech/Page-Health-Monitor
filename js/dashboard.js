@@ -1,5 +1,5 @@
 /**
- * Page Sentinel - Interactive Dashboard UI Controller
+ * Page-Health-Monitor - Interactive Dashboard UI Controller
  * Manages modal views, tabs, filters, search, previews, and visualizations.
  */
 

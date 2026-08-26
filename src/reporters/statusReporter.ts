@@ -60,7 +60,7 @@ export class StatusReporter {
     const countOther = results.filter((r) => r.isError && !r.is404 && r.httpStatus < 500).length;
 
     console.log('\n' + chalk.bold.cyan('='.repeat(95)));
-    console.log(chalk.bold.cyan('        🌐 PAGE SENTINEL - 404 FINDER & PAGE STATUS AUDIT REPORT'));
+    console.log(chalk.bold.cyan('        🌐 PAGE-HEALTH-MONITOR - 404 FINDER & PAGE STATUS AUDIT REPORT'));
     console.log(chalk.bold.cyan('='.repeat(95)));
 
     console.log(`\n${chalk.bold('Target:')}        ${chalk.underline.blue(targetUrl)}`);
@@ -162,7 +162,7 @@ export class StatusReporter {
 
   private static async generateExcel(results: PageStatusResult[], targetUrl: string, filePath: string): Promise<void> {
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Page Sentinel Auditor';
+    workbook.creator = 'Page-Health-Monitor Auditor';
     workbook.created = new Date();
 
     const sheet = workbook.addWorksheet('Page Status & 404 Report', {

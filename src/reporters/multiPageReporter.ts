@@ -26,7 +26,7 @@ export class MultiPageReporter {
     };
 
     console.log('\n' + chalk.bold.cyan('='.repeat(95)));
-    console.log(chalk.bold.cyan('        🌐 PAGE SENTINEL - SITE-WIDE MULTI-PAGE AUDIT SUMMARY'));
+    console.log(chalk.bold.cyan('        🌐 PAGE-HEALTH-MONITOR - SITE-WIDE MULTI-PAGE AUDIT SUMMARY'));
     console.log(chalk.bold.cyan('='.repeat(95)));
 
     console.log(`\n${chalk.bold('Target Site:')}   ${chalk.underline.blue(result.siteUrl)}`);

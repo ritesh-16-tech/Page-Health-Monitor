@@ -25,7 +25,7 @@ export class TerminalReporter {
     };
 
     console.log('\n' + chalk.bold.cyan('='.repeat(95)));
-    console.log(chalk.bold.cyan('        🌐 PAGE SENTINEL - UNIVERSAL WEB HEALTH & DIAGNOSTIC AUDIT'));
+    console.log(chalk.bold.cyan('        🌐 PAGE-HEALTH-MONITOR - UNIVERSAL WEB HEALTH & DIAGNOSTIC AUDIT'));
     console.log(chalk.bold.cyan('='.repeat(95)));
 
     console.log(`\n${chalk.bold('Target URL:')}    ${chalk.underline.blue(result.targetUrl)}`);

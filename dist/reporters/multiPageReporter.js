@@ -16,7 +16,7 @@ export class MultiPageReporter {
             all: '🛡️  ALL DIAGNOSTICS (Images + Links + APIs + Status + SEO + Speed + Fonts + Console)'
         };
         console.log('\n' + chalk.bold.cyan('='.repeat(95)));
-        console.log(chalk.bold.cyan('        🌐 PAGE SENTINEL - SITE-WIDE MULTI-PAGE AUDIT SUMMARY'));
+        console.log(chalk.bold.cyan('        🌐 PAGE-HEALTH-MONITOR - SITE-WIDE MULTI-PAGE AUDIT SUMMARY'));
         console.log(chalk.bold.cyan('='.repeat(95)));
         console.log(`\n${chalk.bold('Target Site:')}   ${chalk.underline.blue(result.siteUrl)}`);
         if (result.sitemapUrl) {
@@ -151,10 +151,17 @@ export class MultiPageReporter {
         const safeUrl = result.siteUrl.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 40);
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const fileName = `site_audit_${safeUrl}_${timestamp}.html`;
+        const summaryFileName = `site_audit_summary_${safeUrl}_${timestamp}.html`;
         const filePath = path.join(targetDir, fileName);
+        const summaryFilePath = path.join(targetDir, summaryFileName);
         const htmlContent = this.renderMultiPageHtml(result);
+        const summaryHtmlContent = this.renderMultiPageSummaryHtml(result);
         await fs.writeFile(filePath, htmlContent, 'utf-8');
-        return path.resolve(filePath);
+        await fs.writeFile(summaryFilePath, summaryHtmlContent, 'utf-8');
+        return {
+            htmlPath: path.resolve(filePath),
+            summaryHtmlPath: path.resolve(summaryFilePath)
+        };
     }
     static async generateCsv(result, outputDir = './reports') {
         const targetDir = getFunctionalReportDir(outputDir, result.focus || 'all');
@@ -162,7 +169,9 @@ export class MultiPageReporter {
         const safeUrl = result.siteUrl.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 40);
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const fileName = `site_audit_${safeUrl}_${timestamp}.csv`;
+        const summaryFileName = `site_audit_summary_${safeUrl}_${timestamp}.csv`;
         const filePath = path.join(targetDir, fileName);
+        const summaryFilePath = path.join(targetDir, summaryFileName);
         const rows = [];
         rows.push([
             'Page Title',
@@ -193,7 +202,29 @@ export class MultiPageReporter {
             ].map(this.escapeCsv).join(','));
         }
         await fs.writeFile(filePath, rows.join('\r\n'), 'utf-8');
-        return path.resolve(filePath);
+        // Generate Summary CSV
+        const sRows = [];
+        sRows.push(['Diagnostic Area', 'Total Tested', 'Errors / Failed', 'Warnings / Redirects', 'Healthy / OK'].map(this.escapeCsv).join(','));
+        const s = result.summary;
+        sRows.push(['Pages Audited', String(s.totalPages), `${s.errorCount} Critical Errors`, `${s.warningCount} Warnings`, `${s.totalPages - s.errorCount} Healthy Pages`].map(this.escapeCsv).join(','));
+        sRows.push(['Image Assets', String(s.images.total), String(s.images.broken), `${s.images.missingAlt} missing alt`, String(s.images.total - s.images.broken)].map(this.escapeCsv).join(','));
+        sRows.push(['Hyperlinks & Routing', String(s.links.total), String(s.links.broken), `${s.links.redirected} redirected`, String(s.links.total - s.links.broken)].map(this.escapeCsv).join(','));
+        sRows.push(['Network Traffic', String(s.network.total), String(s.network.failed), '0', String(s.network.total - s.network.failed)].map(this.escapeCsv).join(','));
+        sRows.push(['Console Exceptions', String(s.console.errors + s.console.warnings), String(s.console.errors), String(s.console.warnings), '0'].map(this.escapeCsv).join(','));
+        if (s.statusSummary) {
+            sRows.push(['HTTP Status & 404', String(s.totalPages), String(s.statusSummary.total404), String(s.statusSummary.total3xx), String(s.statusSummary.total200)].map(this.escapeCsv).join(','));
+        }
+        if (s.seoSummary) {
+            sRows.push(['SEO Metadata', `${s.totalPages} Pages`, `${s.seoSummary.pagesMissingTitle} Missing Title`, `${s.seoSummary.pagesMissingDesc} Missing Desc`, `${s.seoSummary.avgScore}% Avg Score`].map(this.escapeCsv).join(','));
+        }
+        if (s.speedSummary) {
+            sRows.push(['Page Speed', `${s.totalPages} Pages`, `${(s.speedSummary.avgLoadTimeMs / 1000).toFixed(2)}s Avg Load`, `${s.speedSummary.avgTtfbMs}ms Avg TTFB`, `${s.speedSummary.avgScore}% Avg Score`].map(this.escapeCsv).join(','));
+        }
+        await fs.writeFile(summaryFilePath, sRows.join('\r\n'), 'utf-8');
+        return {
+            csvPath: path.resolve(filePath),
+            summaryCsvPath: path.resolve(summaryFilePath)
+        };
     }
     static async generateJson(result, outputDir = './reports') {
         const targetDir = getFunctionalReportDir(outputDir, result.focus || 'all');
@@ -335,6 +366,139 @@ export class MultiPageReporter {
         </table>
       </div>`
             : ''}
+  </div>
+</body>
+</html>`;
+    }
+    static renderMultiPageSummaryHtml(result) {
+        const { summary: s, siteUrl } = result;
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Site-Wide Audit Summary - ${this.escapeHtml(siteUrl)}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19; --card: #111827; --card-border: #1f2937;
+      --text: #f9fafb; --muted: #9ca3af; --primary: #3b82f6;
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 40px 20px; line-height: 1.6; }
+    .container { max-width: 900px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 35px; }
+    .badge { display: inline-block; padding: 6px 14px; border-radius: 9999px; background: rgba(59,130,246,0.15); color: var(--primary); font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+    h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+    .url { color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 14px; word-break: break-all; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 30px; }
+    .kpi-card { background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px; text-align: center; }
+    .kpi-val { font-size: 32px; font-weight: 800; margin-bottom: 4px; }
+    .kpi-label { font-size: 13px; color: var(--muted); text-transform: uppercase; font-weight: 600; }
+    .table-box { background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: 14px 18px; border-bottom: 1px solid var(--card-border); font-size: 14px; }
+    th { background: #1f2937; color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="badge">SITE-WIDE EXECUTIVE SUMMARY</div>
+      <h1>🌐 Multi-Page Health Audit Summary</h1>
+      <div class="url">${this.escapeHtml(siteUrl)}</div>
+    </div>
+
+    <div class="grid">
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: var(--primary);">${s.totalPages}</div>
+        <div class="kpi-label">Pages Audited</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: var(--success);">${s.totalPages - s.errorCount}</div>
+        <div class="kpi-label">Healthy Pages</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: ${s.errorCount > 0 ? 'var(--danger)' : 'var(--success)'};">${s.errorCount}</div>
+        <div class="kpi-label">Critical Errors</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: ${s.warningCount > 0 ? 'var(--warning)' : 'var(--success)'};">${s.warningCount}</div>
+        <div class="kpi-label">Total Warnings</div>
+      </div>
+      ${s.seoSummary ? `
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: ${s.seoSummary.avgScore >= 80 ? 'var(--success)' : 'var(--warning)'};">${s.seoSummary.avgScore}%</div>
+        <div class="kpi-label">Avg SEO Score</div>
+      </div>` : ''}
+      ${s.speedSummary ? `
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: ${s.speedSummary.avgScore >= 80 ? 'var(--success)' : 'var(--warning)'};">${s.speedSummary.avgScore}%</div>
+        <div class="kpi-label">Avg Speed Score</div>
+      </div>` : ''}
+    </div>
+
+    <div class="table-box">
+      <table>
+        <thead>
+          <tr>
+            <th>Diagnostic Area</th>
+            <th>Total Inspected</th>
+            <th>Critical Failures</th>
+            <th>Warnings / Notices</th>
+            <th>Site Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${s.statusSummary ? `
+          <tr>
+            <td><strong>404 & HTTP Status</strong></td>
+            <td>${s.totalPages} pages</td>
+            <td>${s.statusSummary.total404} broken (404)</td>
+            <td>${s.statusSummary.total3xx} redirects</td>
+            <td><span style="color: ${s.statusSummary.total404 === 0 ? 'var(--success)' : 'var(--danger)'};">${s.statusSummary.total404 === 0 ? '✔ 0 Broken 404s' : '✖ Broken URLs found'}</span></td>
+          </tr>` : ''}
+          <tr>
+            <td><strong>Image Assets</strong></td>
+            <td>${s.images.total} images</td>
+            <td>${s.images.broken} broken</td>
+            <td>${s.images.missingAlt} missing alt</td>
+            <td><span style="color: ${s.images.broken === 0 ? 'var(--success)' : 'var(--danger)'};">${s.images.broken === 0 ? '✔ All Healthy' : '✖ Broken images found'}</span></td>
+          </tr>
+          <tr>
+            <td><strong>Hyperlinks & Nav</strong></td>
+            <td>${s.links.total} links</td>
+            <td>${s.links.broken} broken</td>
+            <td>${s.links.redirected} redirects</td>
+            <td><span style="color: ${s.links.broken === 0 ? 'var(--success)' : 'var(--danger)'};">${s.links.broken === 0 ? '✔ All Healthy' : '✖ Dead links found'}</span></td>
+          </tr>
+          <tr>
+            <td><strong>Network Traffic & APIs</strong></td>
+            <td>${s.network.total} calls</td>
+            <td>${s.network.failed} failed</td>
+            <td>0</td>
+            <td><span style="color: ${s.network.failed === 0 ? 'var(--success)' : 'var(--danger)'};">${s.network.failed === 0 ? '✔ All succeeded' : '✖ Failed calls'}</span></td>
+          </tr>
+          ${s.seoSummary ? `
+          <tr>
+            <td><strong>SEO Metadata</strong></td>
+            <td>${s.totalPages} pages</td>
+            <td>${s.seoSummary.pagesMissingTitle} missing title</td>
+            <td>${s.seoSummary.pagesMissingDesc} missing desc</td>
+            <td><span style="color: ${s.seoSummary.avgScore >= 80 ? 'var(--success)' : 'var(--warning)'};">${s.seoSummary.avgScore}% Avg Score</span></td>
+          </tr>` : ''}
+          ${s.speedSummary ? `
+          <tr>
+            <td><strong>Page Speed & Performance</strong></td>
+            <td>${s.totalPages} pages</td>
+            <td>${(s.speedSummary.avgLoadTimeMs / 1000).toFixed(2)}s avg load</td>
+            <td>${s.speedSummary.avgTtfbMs}ms avg TTFB</td>
+            <td><span style="color: ${s.speedSummary.avgScore >= 80 ? 'var(--success)' : 'var(--warning)'};">${s.speedSummary.avgScore}% Avg Score</span></td>
+          </tr>` : ''}
+        </tbody>
+      </table>
+    </div>
   </div>
 </body>
 </html>`;

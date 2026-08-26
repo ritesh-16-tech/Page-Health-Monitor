@@ -1,5 +1,5 @@
 /**
- * Page Sentinel - Main Application Controller
+ * Page-Health-Monitor - Main Application Controller
  * Handles user interactions, multi-source modes (Single URL, Sitemap XML, Bulk File Upload, Manual Queue),
  * real-time terminal output, report exporting, and dashboard visualization.
  */
@@ -620,7 +620,7 @@ document.addEventListener('DOMContentLoaded', () => {
     metricTotal.textContent = '0';
 
     clearTerminal();
-    logTerminal('Page Sentinel v1.0 diagnostic auditor ready.', 'info');
+    logTerminal('Page-Health-Monitor v1.0 diagnostic auditor ready.', 'info');
     logTerminal('Select an audit source above (Single URL, Sitemap XML, Bulk File, or Add URLs) and click "Run Audit".', 'muted');
   }
 

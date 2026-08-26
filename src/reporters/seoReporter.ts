@@ -60,7 +60,7 @@ export class SeoReporter {
     const missingCanonicalCount = results.filter((r) => r.canonicalStatus === 'missing').length;
 
     console.log('\n' + chalk.bold.cyan('='.repeat(95)));
-    console.log(chalk.bold.cyan('        🔍 PAGE SENTINEL - SEO METADATA AUDIT REPORT'));
+    console.log(chalk.bold.cyan('        🔍 PAGE-HEALTH-MONITOR - SEO METADATA AUDIT REPORT'));
     console.log(chalk.bold.cyan('='.repeat(95)));
 
     console.log(`\n${chalk.bold('Target:')}        ${chalk.underline.blue(targetUrl)}`);
@@ -207,7 +207,7 @@ export class SeoReporter {
 
   private static async generateExcel(results: SeoMetadataResult[], targetUrl: string, filePath: string): Promise<void> {
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Page Sentinel Auditor';
+    workbook.creator = 'Page-Health-Monitor Auditor';
     workbook.created = new Date();
 
     const sheet = workbook.addWorksheet('SEO Metadata Audit', {

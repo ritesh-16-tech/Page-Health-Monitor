@@ -1,5 +1,5 @@
 /**
- * Page Sentinel - Client-Side Report Export Helper
+ * Page-Health-Monitor - Client-Side Report Export Helper
  * Generates Excel (.xlsx via SheetJS), CSV, JSON, and Self-Contained HTML reports.
  */
 
@@ -19,7 +19,7 @@ window.PageSentinelExport = {
 
     // 1. SUMMARY SHEET
     const summaryData = [
-      ['PAGE SENTINEL AUDIT REPORT', ''],
+      ['PAGE-HEALTH-MONITOR AUDIT REPORT', ''],
       ['Target URL', auditResult.targetUrl || ''],
       ['Audit Focus', auditResult.focus || 'all'],
       ['Generated On', new Date().toLocaleString()],
@@ -115,7 +115,7 @@ window.PageSentinelExport = {
     }
 
     // Save File
-    XLSX.writeFile(wb, `page_sentinel_audit_${safeName}_${dateStr}.xlsx`);
+    XLSX.writeFile(wb, `page_health_monitor_audit_${safeName}_${dateStr}.xlsx`);
   },
 
   /**
@@ -146,7 +146,7 @@ window.PageSentinelExport = {
     }
 
     const csvContent = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\r\n');
-    this.downloadFile(`page_sentinel_report_${safeName}_${dateStr}.csv`, 'text/csv;charset=utf-8;', csvContent);
+    this.downloadFile(`page_health_monitor_report_${safeName}_${dateStr}.csv`, 'text/csv;charset=utf-8;', csvContent);
   },
 
   /**
@@ -156,7 +156,7 @@ window.PageSentinelExport = {
     const safeName = (auditResult.targetUrl || 'audit').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 30);
     const dateStr = new Date().toISOString().slice(0, 10);
     const jsonStr = JSON.stringify(auditResult, null, 2);
-    this.downloadFile(`page_sentinel_audit_${safeName}_${dateStr}.json`, 'application/json;charset=utf-8;', jsonStr);
+    this.downloadFile(`page_health_monitor_audit_${safeName}_${dateStr}.json`, 'application/json;charset=utf-8;', jsonStr);
   },
 
   /**
@@ -170,7 +170,7 @@ window.PageSentinelExport = {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Page Sentinel Audit Report - ${auditResult.targetUrl}</title>
+  <title>Page-Health-Monitor Audit Report - ${auditResult.targetUrl}</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0b0f19; color: #f8fafc; padding: 24px; }
     .header { border-bottom: 1px solid #232e48; padding-bottom: 16px; margin-bottom: 24px; }
@@ -192,7 +192,7 @@ window.PageSentinelExport = {
 </head>
 <body>
   <div class="header">
-    <h1>🛡️ Page Sentinel Diagnostic Report</h1>
+    <h1>🛡️ Page-Health-Monitor Diagnostic Report</h1>
     <div class="meta">Target: <strong>${auditResult.targetUrl}</strong> | Generated: ${new Date().toLocaleString()} | Focus: ${auditResult.focus || 'all'}</div>
   </div>
   <div class="metrics">
@@ -214,7 +214,7 @@ window.PageSentinelExport = {
 </body>
 </html>`;
 
-    this.downloadFile(`page_sentinel_report_${safeName}_${dateStr}.html`, 'text/html;charset=utf-8;', html);
+    this.downloadFile(`page_health_monitor_report_${safeName}_${dateStr}.html`, 'text/html;charset=utf-8;', html);
   },
 
   /**

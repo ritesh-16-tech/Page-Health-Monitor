@@ -15,7 +15,7 @@ export class ExcelReporter {
     const filePath = path.join(targetDir, fileName);
 
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Page Sentinel Auditor';
+    workbook.creator = 'Page-Health-Monitor Auditor';
     workbook.created = new Date();
 
     const pageTitle = result.pageTitle || '(No title)';
@@ -262,7 +262,7 @@ export class ExcelReporter {
     const filePath = path.join(targetDir, fileName);
 
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Page Sentinel Auditor';
+    workbook.creator = 'Page-Health-Monitor Auditor';
     workbook.created = new Date();
 
     // TAB 1: ALL ACTIONABLE FIXES

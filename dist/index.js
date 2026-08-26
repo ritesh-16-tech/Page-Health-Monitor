@@ -26,9 +26,10 @@ function normalizeUrl(inputUrl) {
 async function main() {
     const program = new Command();
     program
-        .name('page-sentinel')
+        .name('page-health-monitor')
         .description('Universal Web Health, 404 Finder, SEO Metadata, Page Speed, Asset & API Auditor')
         .argument('[url]', 'Target URL, Domain, Sitemap XML, or File Path to audit')
+        .option('-f, --focus <type>', 'Audit focus dimension (all, status, seo, speed, image, link, api)')
         .option('-i, --image', 'Focus audit exclusively on image assets (DOM, picture, dimensions, alt text)')
         .option('--link', 'Focus audit exclusively on hyperlinks, internal/external links & redirect hops')
         .option('--api', 'Focus audit exclusively on dynamic network traffic, XHR, fetch & REST/GraphQL APIs')
@@ -62,7 +63,9 @@ async function main() {
         process.exit(0);
     }
     let focus = 'all';
-    if (options.image)
+    if (options.focus)
+        focus = options.focus.toLowerCase();
+    else if (options.image)
         focus = 'image';
     else if (options.link)
         focus = 'link';
@@ -77,7 +80,8 @@ async function main() {
     let isBulkMode = !!options.bulk;
     let bulkInput = options.bulk || '';
     let crawlSitemap = options.sitemap !== undefined || options.all !== undefined || (options.limit !== undefined && !isBulkMode);
-    const hasExplicitModeFlags = options.image ||
+    const hasExplicitModeFlags = options.focus ||
+        options.image ||
         options.link ||
         options.api ||
         options.status ||
@@ -93,7 +97,7 @@ async function main() {
     // Interactive Prompt Flow if URL missing or no mode flags provided in interactive TTY
     if (!targetUrl && !hasExplicitModeFlags) {
         console.log(chalk.bold.cyan('\n======================================================================'));
-        console.log(chalk.bold.cyan('     🛡️  PAGE SENTINEL - UNIVERSAL WEB HEALTH & DIAGNOSTIC AUDITOR'));
+        console.log(chalk.bold.cyan('     🛡️  PAGE-HEALTH-MONITOR - UNIVERSAL WEB HEALTH & DIAGNOSTIC AUDITOR'));
         console.log(chalk.bold.cyan('======================================================================'));
         try {
             targetUrl = await input({
@@ -244,8 +248,8 @@ async function main() {
                 statusSpinner.text = `[${checked}/${total}] HTTP ${res.httpStatus || 'FAIL'} - ${currentUrl.slice(0, 45)}...`;
             });
             statusSpinner.succeed(`Completed status check on ${statusResults.length} URLs!`);
-            const { htmlPath, excelPath, csvPath, jsonPath } = await StatusReporter.generateAll(statusResults, 'bulk_status_audit', options.outputDir);
-            StatusReporter.printTerminal(statusResults, 'Bulk URL List', htmlPath, excelPath, csvPath, jsonPath);
+            const { htmlPath, excelPath, csvPath, jsonPath, summaryHtmlPath, summaryCsvPath } = await StatusReporter.generateAll(statusResults, 'bulk_status_audit', options.outputDir);
+            StatusReporter.printTerminal(statusResults, 'Bulk URL List', htmlPath, excelPath, csvPath, jsonPath, summaryHtmlPath, summaryCsvPath);
             return;
         }
         // 2. Specialized SEO Bulk Auditor
@@ -274,8 +278,8 @@ async function main() {
                     pageSpinner.fail(`Failed to audit ${u}: ${err.message}`);
                 }
             }
-            const { htmlPath, excelPath, csvPath, jsonPath } = await SeoReporter.generateAll(seoResults, 'bulk_seo_audit', options.outputDir);
-            SeoReporter.printTerminal(seoResults, 'Bulk SEO Audit', htmlPath, excelPath, csvPath, jsonPath);
+            const { htmlPath, excelPath, csvPath, jsonPath, summaryHtmlPath, summaryCsvPath } = await SeoReporter.generateAll(seoResults, 'bulk_seo_audit', options.outputDir);
+            SeoReporter.printTerminal(seoResults, 'Bulk SEO Audit', htmlPath, excelPath, csvPath, jsonPath, summaryHtmlPath, summaryCsvPath);
             return;
         }
         // 3. Specialized Page Speed Bulk Auditor
@@ -303,8 +307,8 @@ async function main() {
                     pageSpinner.fail(`Failed to audit ${u}: ${err.message}`);
                 }
             }
-            const { htmlPath, excelPath, csvPath, jsonPath } = await SpeedReporter.generateAll(speedResults, 'bulk_speed_audit', options.outputDir);
-            SpeedReporter.printTerminal(speedResults, 'Bulk Speed Audit', htmlPath, excelPath, csvPath, jsonPath);
+            const { htmlPath, excelPath, csvPath, jsonPath, summaryHtmlPath, summaryCsvPath } = await SpeedReporter.generateAll(speedResults, 'bulk_speed_audit', options.outputDir);
+            SpeedReporter.printTerminal(speedResults, 'Bulk Speed Audit', htmlPath, excelPath, csvPath, jsonPath, summaryHtmlPath, summaryCsvPath);
             return;
         }
         // 4. General Bulk Audit
@@ -385,8 +389,8 @@ async function main() {
                 statusSpinner.text = `[${checked}/${total}] HTTP ${res.httpStatus || 'FAIL'} - ${currentUrl.slice(0, 45)}...`;
             });
             statusSpinner.succeed(`Completed status check on ${statusResults.length} pages!`);
-            const { htmlPath, excelPath, csvPath, jsonPath } = await StatusReporter.generateAll(statusResults, targetUrl, options.outputDir);
-            StatusReporter.printTerminal(statusResults, targetUrl, htmlPath, excelPath, csvPath, jsonPath);
+            const { htmlPath, excelPath, csvPath, jsonPath, summaryHtmlPath, summaryCsvPath } = await StatusReporter.generateAll(statusResults, targetUrl, options.outputDir);
+            StatusReporter.printTerminal(statusResults, targetUrl, htmlPath, excelPath, csvPath, jsonPath, summaryHtmlPath, summaryCsvPath);
             return;
         }
         // 2. Fast Path for SEO Crawl
@@ -414,8 +418,8 @@ async function main() {
                     pageSpinner.fail(`Failed to audit ${u}: ${err.message}`);
                 }
             }
-            const { htmlPath, excelPath, csvPath, jsonPath } = await SeoReporter.generateAll(seoResults, targetUrl, options.outputDir);
-            SeoReporter.printTerminal(seoResults, targetUrl, htmlPath, excelPath, csvPath, jsonPath);
+            const { htmlPath, excelPath, csvPath, jsonPath, summaryHtmlPath, summaryCsvPath } = await SeoReporter.generateAll(seoResults, targetUrl, options.outputDir);
+            SeoReporter.printTerminal(seoResults, targetUrl, htmlPath, excelPath, csvPath, jsonPath, summaryHtmlPath, summaryCsvPath);
             return;
         }
         // 3. Fast Path for Page Speed Crawl
@@ -443,8 +447,8 @@ async function main() {
                     pageSpinner.fail(`Failed to audit ${u}: ${err.message}`);
                 }
             }
-            const { htmlPath, excelPath, csvPath, jsonPath } = await SpeedReporter.generateAll(speedResults, targetUrl, options.outputDir);
-            SpeedReporter.printTerminal(speedResults, targetUrl, htmlPath, excelPath, csvPath, jsonPath);
+            const { htmlPath, excelPath, csvPath, jsonPath, summaryHtmlPath, summaryCsvPath } = await SpeedReporter.generateAll(speedResults, targetUrl, options.outputDir);
+            SpeedReporter.printTerminal(speedResults, targetUrl, htmlPath, excelPath, csvPath, jsonPath, summaryHtmlPath, summaryCsvPath);
             return;
         }
         // 4. Comprehensive Site Audit (All Diagnostics)
@@ -461,8 +465,8 @@ async function main() {
         const statusChecker = new StatusChecker(1, parseInt(options.timeout, 10));
         const statusResult = await statusChecker.checkSingleStatus(targetUrl);
         statusSpinner.succeed(`Checked ${targetUrl} (HTTP ${statusResult.httpStatus})`);
-        const { htmlPath, excelPath, csvPath, jsonPath } = await StatusReporter.generateAll([statusResult], targetUrl, options.outputDir);
-        StatusReporter.printTerminal([statusResult], targetUrl, htmlPath, excelPath, csvPath, jsonPath);
+        const { htmlPath, excelPath, csvPath, jsonPath, summaryHtmlPath, summaryCsvPath } = await StatusReporter.generateAll([statusResult], targetUrl, options.outputDir);
+        StatusReporter.printTerminal([statusResult], targetUrl, htmlPath, excelPath, csvPath, jsonPath, summaryHtmlPath, summaryCsvPath);
         return;
     }
     const spinner = ora({
@@ -519,23 +523,23 @@ async function main() {
         spinner.succeed('Audit complete! Generating reports...');
         // If focus was specifically SEO, generate dedicated SEO report as well
         if (focus === 'seo' && result.seoMetadata) {
-            const { htmlPath, excelPath, csvPath, jsonPath } = await SeoReporter.generateAll([result.seoMetadata], targetUrl, options.outputDir);
-            SeoReporter.printTerminal([result.seoMetadata], targetUrl, htmlPath, excelPath, csvPath, jsonPath);
+            const { htmlPath, excelPath, csvPath, jsonPath, summaryHtmlPath, summaryCsvPath } = await SeoReporter.generateAll([result.seoMetadata], targetUrl, options.outputDir);
+            SeoReporter.printTerminal([result.seoMetadata], targetUrl, htmlPath, excelPath, csvPath, jsonPath, summaryHtmlPath, summaryCsvPath);
             return;
         }
         // If focus was specifically Speed, generate dedicated Speed report as well
         if (focus === 'speed' && result.pageSpeed) {
-            const { htmlPath, excelPath, csvPath, jsonPath } = await SpeedReporter.generateAll([result.pageSpeed], targetUrl, options.outputDir);
-            SpeedReporter.printTerminal([result.pageSpeed], targetUrl, htmlPath, excelPath, csvPath, jsonPath);
+            const { htmlPath, excelPath, csvPath, jsonPath, summaryHtmlPath, summaryCsvPath } = await SpeedReporter.generateAll([result.pageSpeed], targetUrl, options.outputDir);
+            SpeedReporter.printTerminal([result.pageSpeed], targetUrl, htmlPath, excelPath, csvPath, jsonPath, summaryHtmlPath, summaryCsvPath);
             return;
         }
         // Generate full unified HTML, Excel (.xlsx), CSV, and JSON reports
-        const htmlReportPath = await HtmlReporter.generate(result, options.outputDir);
+        const { htmlPath: htmlReportPath, summaryHtmlPath } = await HtmlReporter.generate(result, options.outputDir);
         const excelReportPath = await ExcelReporter.generate(result, options.outputDir);
         const { csvPath, summaryCsvPath } = await CsvReporter.generate(result, options.outputDir);
         const jsonReportPath = await JsonReporter.generate(result, options.outputDir);
         // Print Rich Terminal Output
-        TerminalReporter.print(result, htmlReportPath, jsonReportPath, csvPath, excelReportPath, summaryCsvPath);
+        TerminalReporter.print(result, htmlReportPath, jsonReportPath, csvPath, excelReportPath, summaryCsvPath, summaryHtmlPath);
     }
     catch (err) {
         spinner.fail(`Audit encountered an error: ${err.message}`);
@@ -625,9 +629,9 @@ async function runMultiPageAudit(pagesToAudit, targetUrl, sitemapSourceUrl, focu
         summary: siteSummary
     };
     // Generate Multi-Page HTML, Excel (.xlsx), CSV, and JSON Reports
-    const htmlReportPath = await MultiPageReporter.generateHtml(multiPageResult, options.outputDir);
+    const { htmlPath: htmlReportPath, summaryHtmlPath } = await MultiPageReporter.generateHtml(multiPageResult, options.outputDir);
     const excelReportPath = await ExcelReporter.generateMultiPage(multiPageResult, options.outputDir);
-    const csvReportPath = await MultiPageReporter.generateCsv(multiPageResult, options.outputDir);
+    const { csvPath: csvReportPath, summaryCsvPath } = await MultiPageReporter.generateCsv(multiPageResult, options.outputDir);
     const jsonReportPath = await MultiPageReporter.generateJson(multiPageResult, options.outputDir);
     MultiPageReporter.printTerminal(multiPageResult, htmlReportPath, csvReportPath, jsonReportPath, excelReportPath);
 }

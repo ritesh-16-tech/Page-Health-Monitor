@@ -11,7 +11,7 @@ export class ExcelReporter {
         const fileName = `audit_${safeUrl}_${timestamp}.xlsx`;
         const filePath = path.join(targetDir, fileName);
         const workbook = new ExcelJS.Workbook();
-        workbook.creator = 'Page Sentinel Auditor';
+        workbook.creator = 'Page-Health-Monitor Auditor';
         workbook.created = new Date();
         const pageTitle = result.pageTitle || '(No title)';
         const pagePath = result.finalPageUrl || result.targetUrl;
@@ -240,7 +240,7 @@ export class ExcelReporter {
         const fileName = `site_audit_${safeUrl}_${timestamp}.xlsx`;
         const filePath = path.join(targetDir, fileName);
         const workbook = new ExcelJS.Workbook();
-        workbook.creator = 'Page Sentinel Auditor';
+        workbook.creator = 'Page-Health-Monitor Auditor';
         workbook.created = new Date();
         // TAB 1: ALL ACTIONABLE FIXES
         const sheet1 = workbook.addWorksheet('Consolidated Issues & Fixes', {

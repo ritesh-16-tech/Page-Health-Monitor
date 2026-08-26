@@ -126,6 +126,6 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`\n🛡️  Page Sentinel Web UI is running at: http://localhost:${PORT}/\n`);
+  console.log(`\n🛡️  Page-Health-Monitor Web UI is running at: http://localhost:${PORT}/\n`);
 });
 

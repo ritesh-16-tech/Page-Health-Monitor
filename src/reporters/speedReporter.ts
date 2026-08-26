@@ -59,7 +59,7 @@ export class SpeedReporter {
     const avgSize = total > 0 ? Math.round(results.reduce((acc, r) => acc + r.resources.totalTransferSizeKb, 0) / total) : 0;
 
     console.log('\n' + chalk.bold.cyan('='.repeat(95)));
-    console.log(chalk.bold.cyan('        ⚡ PAGE SENTINEL - PAGE SPEED & WEB PERFORMANCE AUDIT'));
+    console.log(chalk.bold.cyan('        ⚡ PAGE-HEALTH-MONITOR - PAGE SPEED & WEB PERFORMANCE AUDIT'));
     console.log(chalk.bold.cyan('='.repeat(95)));
 
     console.log(`\n${chalk.bold('Target:')}        ${chalk.underline.blue(targetUrl)}`);
@@ -195,7 +195,7 @@ export class SpeedReporter {
 
   private static async generateExcel(results: PageSpeedResult[], targetUrl: string, filePath: string): Promise<void> {
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Page Sentinel Auditor';
+    workbook.creator = 'Page-Health-Monitor Auditor';
     workbook.created = new Date();
 
     // Tab 1: Web Vitals & Load Times

@@ -1,4 +1,4 @@
-# 🛡️ Page Sentinel - Universal Web Health, 404 Finder, SEO & Speed Diagnostic Auditor
+# 🛡️ Page-Health-Monitor - Universal Web Health, 404 Finder, SEO & Speed Diagnostic Auditor
 
 A full-stack diagnostic CLI tool powered by **Playwright (Chromium)**, **Axios**, and **TypeScript** to perform deep audits on **ANY website, single page, bulk URL list, or full XML sitemap**.
 
@@ -10,13 +10,13 @@ Works out-of-the-box for any domain (e.g. `https://example.com/`, `https://your-
 
 ## 🌐 Interactive Web UI & Direct GitHub Pages Hosting
 
-Page Sentinel includes a modern, high-performance **Web UI** matching a dark developer aesthetic that can be **hosted directly on GitHub Pages** or run locally with zero build dependencies!
+Page-Health-Monitor includes a modern, high-performance **Web UI** matching a dark developer aesthetic that can be **hosted directly on GitHub Pages** or run locally with zero build dependencies!
 
 ### 🚀 Direct Use on GitHub Pages
 1. Push this repository to GitHub:
    ```bash
    git add .
-   git commit -m "Deploy Page Sentinel Web UI"
+   git commit -m "Deploy Page-Health-Monitor Web UI"
    git push origin main
    ```
 2. Enable **GitHub Pages**:

@@ -36,13 +36,13 @@ export class HtmlReporter {
     const focus = result.focus || 'all';
 
     const focusBadgeLabels: Record<string, string> = {
-      image: 'PAGE SENTINEL - IMAGE ASSET AUDIT',
-      link: 'PAGE SENTINEL - HYPERLINK AUDIT',
-      api: 'PAGE SENTINEL - NETWORK & API AUDIT',
-      status: 'PAGE SENTINEL - 404 FINDER & PAGE STATUS',
-      seo: 'PAGE SENTINEL - SEO METADATA & SOCIAL AUDIT',
-      speed: 'PAGE SENTINEL - PAGE SPEED & WEB PERFORMANCE',
-      all: 'PAGE SENTINEL - COMPREHENSIVE WEB HEALTH AUDIT'
+      image: 'PAGE-HEALTH-MONITOR - IMAGE ASSET AUDIT',
+      link: 'PAGE-HEALTH-MONITOR - HYPERLINK AUDIT',
+      api: 'PAGE-HEALTH-MONITOR - NETWORK & API AUDIT',
+      status: 'PAGE-HEALTH-MONITOR - 404 FINDER & PAGE STATUS',
+      seo: 'PAGE-HEALTH-MONITOR - SEO METADATA & SOCIAL AUDIT',
+      speed: 'PAGE-HEALTH-MONITOR - PAGE SPEED & WEB PERFORMANCE',
+      all: 'PAGE-HEALTH-MONITOR - COMPREHENSIVE WEB HEALTH AUDIT'
     };
 
     let defaultTab = 'tab-fixes';
@@ -305,7 +305,7 @@ export class HtmlReporter {
     <header class="header">
       <div class="header-top">
         <div>
-          <span class="badge-brand">${focusBadgeLabels[focus] || 'PAGE SENTINEL AUDIT'}</span>
+          <span class="badge-brand">${focusBadgeLabels[focus] || 'PAGE-HEALTH-MONITOR AUDIT'}</span>
           <h1 class="page-title">${this.escapeHtml(result.pageTitle || 'Web Page Audit')}</h1>
           <div class="page-url">${this.escapeHtml(result.targetUrl)}</div>
         </div>

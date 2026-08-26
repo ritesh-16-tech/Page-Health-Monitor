@@ -8,10 +8,17 @@ export class HtmlReporter {
         const safeUrl = result.targetUrl.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 40);
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const fileName = `audit_${safeUrl}_${timestamp}.html`;
+        const summaryFileName = `audit_summary_${safeUrl}_${timestamp}.html`;
         const filePath = path.join(targetDir, fileName);
+        const summaryFilePath = path.join(targetDir, summaryFileName);
         const htmlContent = this.renderHtml(result);
+        const summaryHtmlContent = this.renderSummaryHtml(result);
         await fs.writeFile(filePath, htmlContent, 'utf-8');
-        return path.resolve(filePath);
+        await fs.writeFile(summaryFilePath, summaryHtmlContent, 'utf-8');
+        return {
+            htmlPath: path.resolve(filePath),
+            summaryHtmlPath: path.resolve(summaryFilePath)
+        };
     }
     static renderHtml(result) {
         const { summary, actionableFixes, networkTraffic, consoleLogs, pageStatus, seoMetadata, pageSpeed } = result;
@@ -19,13 +26,13 @@ export class HtmlReporter {
         const errorLogs = consoleLogs.filter((l) => l.type === 'error' || l.type === 'pageerror');
         const focus = result.focus || 'all';
         const focusBadgeLabels = {
-            image: 'PAGE SENTINEL - IMAGE ASSET AUDIT',
-            link: 'PAGE SENTINEL - HYPERLINK AUDIT',
-            api: 'PAGE SENTINEL - NETWORK & API AUDIT',
-            status: 'PAGE SENTINEL - 404 FINDER & PAGE STATUS',
-            seo: 'PAGE SENTINEL - SEO METADATA & SOCIAL AUDIT',
-            speed: 'PAGE SENTINEL - PAGE SPEED & WEB PERFORMANCE',
-            all: 'PAGE SENTINEL - COMPREHENSIVE WEB HEALTH AUDIT'
+            image: 'PAGE-HEALTH-MONITOR - IMAGE ASSET AUDIT',
+            link: 'PAGE-HEALTH-MONITOR - HYPERLINK AUDIT',
+            api: 'PAGE-HEALTH-MONITOR - NETWORK & API AUDIT',
+            status: 'PAGE-HEALTH-MONITOR - 404 FINDER & PAGE STATUS',
+            seo: 'PAGE-HEALTH-MONITOR - SEO METADATA & SOCIAL AUDIT',
+            speed: 'PAGE-HEALTH-MONITOR - PAGE SPEED & WEB PERFORMANCE',
+            all: 'PAGE-HEALTH-MONITOR - COMPREHENSIVE WEB HEALTH AUDIT'
         };
         let defaultTab = 'tab-fixes';
         if (focus === 'image')
@@ -293,7 +300,7 @@ export class HtmlReporter {
     <header class="header">
       <div class="header-top">
         <div>
-          <span class="badge-brand">${focusBadgeLabels[focus] || 'PAGE SENTINEL AUDIT'}</span>
+          <span class="badge-brand">${focusBadgeLabels[focus] || 'PAGE-HEALTH-MONITOR AUDIT'}</span>
           <h1 class="page-title">${this.escapeHtml(result.pageTitle || 'Web Page Audit')}</h1>
           <div class="page-url">${this.escapeHtml(result.targetUrl)}</div>
         </div>
@@ -672,6 +679,138 @@ export class HtmlReporter {
       if (activePane) activePane.classList.add('active');
     }
   </script>
+</body>
+</html>`;
+    }
+    static renderSummaryHtml(result) {
+        const { summary, actionableFixes, pageStatus, seoMetadata, pageSpeed, targetUrl } = result;
+        const criticalCount = actionableFixes.filter((f) => f.severity === 'Critical').length;
+        const warningCount = actionableFixes.filter((f) => f.severity === 'Warning').length;
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit Executive Summary - ${this.escapeHtml(targetUrl)}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19; --card: #111827; --card-border: #1f2937;
+      --text: #f9fafb; --muted: #9ca3af; --primary: #3b82f6;
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 40px 20px; line-height: 1.6; }
+    .container { max-width: 900px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 35px; }
+    .badge { display: inline-block; padding: 6px 14px; border-radius: 9999px; background: rgba(59,130,246,0.15); color: var(--primary); font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+    h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+    .url { color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 14px; word-break: break-all; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 30px; }
+    .kpi-card { background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px; text-align: center; }
+    .kpi-val { font-size: 32px; font-weight: 800; margin-bottom: 4px; }
+    .kpi-label { font-size: 13px; color: var(--muted); text-transform: uppercase; font-weight: 600; }
+    .table-box { background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: 14px 18px; border-bottom: 1px solid var(--card-border); font-size: 14px; }
+    th { background: #1f2937; color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="badge">EXECUTIVE SUMMARY REPORT</div>
+      <h1>🛡️ Comprehensive Health Audit Summary</h1>
+      <div class="url">${this.escapeHtml(targetUrl)}</div>
+    </div>
+
+    <div class="grid">
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: ${criticalCount > 0 ? 'var(--danger)' : 'var(--success)'};">${criticalCount}</div>
+        <div class="kpi-label">Critical Issues</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: ${warningCount > 0 ? 'var(--warning)' : 'var(--success)'};">${warningCount}</div>
+        <div class="kpi-label">Warnings</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: var(--primary);">${summary.images.total}</div>
+        <div class="kpi-label">Images Checked</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: var(--primary);">${summary.links.total}</div>
+        <div class="kpi-label">Links Checked</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: ${seoMetadata ? (seoMetadata.score >= 80 ? 'var(--success)' : 'var(--warning)') : 'var(--muted)'};">${seoMetadata ? `${seoMetadata.score}%` : 'N/A'}</div>
+        <div class="kpi-label">SEO Health</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: ${pageSpeed ? (pageSpeed.score >= 80 ? 'var(--success)' : 'var(--warning)') : 'var(--muted)'};">${pageSpeed ? `${pageSpeed.score}%` : 'N/A'}</div>
+        <div class="kpi-label">Speed Score</div>
+      </div>
+    </div>
+
+    <div class="table-box">
+      <table>
+        <thead>
+          <tr>
+            <th>Diagnostic Area</th>
+            <th>Total Inspected</th>
+            <th>Errors / Broken</th>
+            <th>Warnings / Redirects</th>
+            <th>Health Assessment</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>HTTP Status & 404</strong></td>
+            <td>1 Page</td>
+            <td>${pageStatus?.is404 ? '1 (404)' : (result.httpStatus >= 400 ? `1 (${result.httpStatus})` : '0')}</td>
+            <td>${pageStatus?.isRedirect ? '1 (Redirect)' : '0'}</td>
+            <td><span style="color: ${result.httpStatus === 200 ? 'var(--success)' : 'var(--danger)'};">${result.httpStatus === 200 ? '✔ 200 OK' : '✖ Issue'}</span></td>
+          </tr>
+          <tr>
+            <td><strong>Image Assets</strong></td>
+            <td>${summary.images.total} images</td>
+            <td>${summary.images.broken} broken</td>
+            <td>${summary.images.missingAlt} missing alt</td>
+            <td><span style="color: ${summary.images.broken === 0 ? 'var(--success)' : 'var(--danger)'};">${summary.images.broken === 0 ? '✔ Healthy' : '✖ Broken assets found'}</span></td>
+          </tr>
+          <tr>
+            <td><strong>Hyperlinks & Routing</strong></td>
+            <td>${summary.links.total} links</td>
+            <td>${summary.links.broken} broken</td>
+            <td>${summary.links.redirected} redirected</td>
+            <td><span style="color: ${summary.links.broken === 0 ? 'var(--success)' : 'var(--danger)'};">${summary.links.broken === 0 ? '✔ Healthy' : '✖ Dead links found'}</span></td>
+          </tr>
+          <tr>
+            <td><strong>Network Traffic & APIs</strong></td>
+            <td>${summary.network.total} requests</td>
+            <td>${summary.network.failed} failed</td>
+            <td>0</td>
+            <td><span style="color: ${summary.network.failed === 0 ? 'var(--success)' : 'var(--danger)'};">${summary.network.failed === 0 ? '✔ All succeeded' : '✖ Network failures'}</span></td>
+          </tr>
+          ${seoMetadata ? `
+          <tr>
+            <td><strong>SEO Metadata</strong></td>
+            <td>1 Page</td>
+            <td>${seoMetadata.issues.length} issues</td>
+            <td>0</td>
+            <td><span style="color: ${seoMetadata.score >= 80 ? 'var(--success)' : 'var(--warning)'};">${seoMetadata.score}% (${seoMetadata.grade})</span></td>
+          </tr>` : ''}
+          ${pageSpeed ? `
+          <tr>
+            <td><strong>Page Speed & Performance</strong></td>
+            <td>1 Page</td>
+            <td>${pageSpeed.bottlenecks.filter(b => b.severity === 'Critical').length} critical</td>
+            <td>${pageSpeed.bottlenecks.filter(b => b.severity === 'Warning').length} warnings</td>
+            <td><span style="color: ${pageSpeed.score >= 80 ? 'var(--success)' : 'var(--warning)'};">${pageSpeed.score}% (${pageSpeed.rating})</span></td>
+          </tr>` : ''}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </body>
 </html>`;
     }

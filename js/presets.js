@@ -1,4 +1,4 @@
 /**
- * Page Sentinel - Dynamic Web Auditor
+ * Page-Health-Monitor - Dynamic Web Auditor
  * Static preset profiles have been removed. All audits execute dynamically.
  */

@@ -32,7 +32,7 @@ async function main() {
   const program = new Command();
 
   program
-    .name('page-sentinel')
+    .name('page-health-monitor')
     .description('Universal Web Health, 404 Finder, SEO Metadata, Page Speed, Asset & API Auditor')
     .argument('[url]', 'Target URL, Domain, Sitemap XML, or File Path to audit')
     .option('-f, --focus <type>', 'Audit focus dimension (all, status, seo, speed, image, link, api)')
@@ -102,7 +102,7 @@ async function main() {
   // Interactive Prompt Flow if URL missing or no mode flags provided in interactive TTY
   if (!targetUrl && !hasExplicitModeFlags) {
     console.log(chalk.bold.cyan('\n======================================================================'));
-    console.log(chalk.bold.cyan('     🛡️  PAGE SENTINEL - UNIVERSAL WEB HEALTH & DIAGNOSTIC AUDITOR'));
+    console.log(chalk.bold.cyan('     🛡️  PAGE-HEALTH-MONITOR - UNIVERSAL WEB HEALTH & DIAGNOSTIC AUDITOR'));
     console.log(chalk.bold.cyan('======================================================================'));
 
     try {

@@ -1,5 +1,5 @@
 /**
- * Page Sentinel - Universal Client-Side Audit & Crawl Engine
+ * Page-Health-Monitor - Universal Client-Side Audit & Crawl Engine
  * Inspects live pages via DOMParser, asynchronous Image probes, link testers,
  * SEO meta evaluation, speed calculation, and CORS fallback handling.
  */
@@ -36,7 +36,7 @@ window.PageSentinelAuditEngine = {
       if (onLog) onLog(msg, type);
     };
 
-    log(`Starting Page Sentinel diagnostic engine v1.0.0`, 'info');
+    log(`Starting Page-Health-Monitor diagnostic engine v1.0.0`, 'info');
     log(`Audit Source Mode: ${sourceMode.toUpperCase()}`, 'info');
     log(`Focus mode: ${focus.toUpperCase()} diagnostics will be prioritized.`, 'info');
 
@@ -703,7 +703,7 @@ window.PageSentinelAuditEngine = {
       isIndexable: true,
       openGraph: { title: `Audit - ${url}`, description: 'Web audit report', hasOgTitle: true, hasOgDesc: true, hasOgImage: false },
       twitterCard: { hasTwitterCard: false },
-      headings: { h1: ['Page Sentinel Diagnostic Audit'], h1Count: 1, h2Count: 2, h3Count: 2, h1Status: 'optimal' },
+      headings: { h1: ['Page-Health-Monitor Diagnostic Audit'], h1Count: 1, h2Count: 2, h3Count: 2, h1Status: 'optimal' },
       structuredData: { hasSchema: false, schemaCount: 0, types: [] },
       score: 85,
       grade: 'B'

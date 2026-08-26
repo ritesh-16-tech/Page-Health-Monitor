@@ -116,7 +116,7 @@ export class ReportCleaner {
    */
   static async interactiveClean(outputDir = './reports'): Promise<void> {
     console.log(chalk.bold.cyan('\n======================================================================'));
-    console.log(chalk.bold.cyan('             🧹  PAGE SENTINEL - REPORT DIRECTORY CLEANER'));
+    console.log(chalk.bold.cyan('             🧹  PAGE-HEALTH-MONITOR - REPORT DIRECTORY CLEANER'));
     console.log(chalk.bold.cyan('======================================================================'));
 
     try {

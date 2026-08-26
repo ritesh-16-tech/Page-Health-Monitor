@@ -14,25 +14,31 @@ export class SpeedReporter {
         const excelPath = path.join(targetDir, `page_speed_${safeUrl}_${timestamp}.xlsx`);
         const csvPath = path.join(targetDir, `page_speed_${safeUrl}_${timestamp}.csv`);
         const jsonPath = path.join(targetDir, `page_speed_${safeUrl}_${timestamp}.json`);
+        const summaryCsvPath = path.join(targetDir, `summary_page_speed_${safeUrl}_${timestamp}.csv`);
+        const summaryHtmlPath = path.join(targetDir, `summary_page_speed_${safeUrl}_${timestamp}.html`);
         await fs.writeFile(htmlPath, this.renderHtml(results, targetUrl), 'utf-8');
         await fs.writeFile(csvPath, this.renderCsv(results), 'utf-8');
+        await fs.writeFile(summaryCsvPath, this.renderSummaryCsv(results, targetUrl), 'utf-8');
+        await fs.writeFile(summaryHtmlPath, this.renderSummaryHtml(results, targetUrl), 'utf-8');
         await fs.writeFile(jsonPath, JSON.stringify({ targetUrl, timestamp: new Date().toISOString(), total: results.length, results }, null, 2), 'utf-8');
         await this.generateExcel(results, targetUrl, excelPath);
         return {
             htmlPath: path.resolve(htmlPath),
             excelPath: path.resolve(excelPath),
             csvPath: path.resolve(csvPath),
+            summaryCsvPath: path.resolve(summaryCsvPath),
+            summaryHtmlPath: path.resolve(summaryHtmlPath),
             jsonPath: path.resolve(jsonPath)
         };
     }
-    static printTerminal(results, targetUrl, htmlPath, excelPath, csvPath, jsonPath) {
+    static printTerminal(results, targetUrl, htmlPath, excelPath, csvPath, jsonPath, summaryHtmlPath, summaryCsvPath) {
         const total = results.length;
         const avgScore = total > 0 ? Math.round(results.reduce((acc, r) => acc + r.score, 0) / total) : 0;
         const avgLoadTime = total > 0 ? (results.reduce((acc, r) => acc + r.metrics.loadCompleteMs, 0) / total / 1000).toFixed(2) : '0';
         const avgTtfb = total > 0 ? Math.round(results.reduce((acc, r) => acc + r.metrics.ttfbMs, 0) / total) : 0;
         const avgSize = total > 0 ? Math.round(results.reduce((acc, r) => acc + r.resources.totalTransferSizeKb, 0) / total) : 0;
         console.log('\n' + chalk.bold.cyan('='.repeat(95)));
-        console.log(chalk.bold.cyan('        ⚡ PAGE SENTINEL - PAGE SPEED & WEB PERFORMANCE AUDIT'));
+        console.log(chalk.bold.cyan('        ⚡ PAGE-HEALTH-MONITOR - PAGE SPEED & WEB PERFORMANCE AUDIT'));
         console.log(chalk.bold.cyan('='.repeat(95)));
         console.log(`\n${chalk.bold('Target:')}        ${chalk.underline.blue(targetUrl)}`);
         console.log(`${chalk.bold('Pages Audited:')} ${chalk.white.bold(total)}`);
@@ -73,10 +79,14 @@ export class SpeedReporter {
         }
         if (htmlPath)
             console.log(`\n${chalk.bold('Interactive HTML Dashboard:')} ${chalk.green.underline(htmlPath)}`);
+        if (summaryHtmlPath)
+            console.log(`${chalk.bold('Executive Summary HTML:')}     ${chalk.green.underline(summaryHtmlPath)}`);
         if (excelPath)
             console.log(`${chalk.bold('Excel (.xlsx) Report:')}        ${chalk.green.underline(excelPath)}`);
         if (csvPath)
-            console.log(`${chalk.bold('CSV Report:')}                 ${chalk.green.underline(csvPath)}`);
+            console.log(`${chalk.bold('CSV Detailed Report:')}          ${chalk.green.underline(csvPath)}`);
+        if (summaryCsvPath)
+            console.log(`${chalk.bold('Summary Table CSV Report:')}   ${chalk.green.underline(summaryCsvPath)}`);
         if (jsonPath)
             console.log(`${chalk.bold('JSON Data Export:')}          ${chalk.green.underline(jsonPath)}`);
         console.log(chalk.bold.cyan('='.repeat(95)) + '\n');
@@ -159,7 +169,7 @@ export class SpeedReporter {
     }
     static async generateExcel(results, targetUrl, filePath) {
         const workbook = new ExcelJS.Workbook();
-        workbook.creator = 'Page Sentinel Auditor';
+        workbook.creator = 'Page-Health-Monitor Auditor';
         workbook.created = new Date();
         // Tab 1: Web Vitals & Load Times
         const sheet1 = workbook.addWorksheet('Web Vitals & Performance', {
@@ -425,6 +435,154 @@ export class SpeedReporter {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
+    }
+    static renderSummaryCsv(results, targetUrl) {
+        const total = results.length;
+        const avgScore = total > 0 ? Math.round(results.reduce((acc, r) => acc + r.score, 0) / total) : 0;
+        const avgLoadTime = total > 0 ? (results.reduce((acc, r) => acc + r.metrics.loadCompleteMs, 0) / total / 1000).toFixed(2) : '0';
+        const avgTtfb = total > 0 ? Math.round(results.reduce((acc, r) => acc + r.metrics.ttfbMs, 0) / total) : 0;
+        const avgFcp = total > 0 ? (results.reduce((acc, r) => acc + r.metrics.fcpMs, 0) / total / 1000).toFixed(2) : '0';
+        const avgPayload = total > 0 ? Math.round(results.reduce((acc, r) => acc + r.resources.totalTransferSizeKb, 0) / total) : 0;
+        const totalBottlenecks = results.reduce((acc, r) => acc + r.bottlenecks.length, 0);
+        let overallRating = 'Good';
+        if (avgScore < 55)
+            overallRating = 'Poor';
+        else if (avgScore < 80)
+            overallRating = 'Needs Improvement';
+        const rows = [
+            ['Metric / KPI', 'Value', 'Status / Benchmark'].map(this.escapeCsv).join(','),
+            ['Target Domain / Input', targetUrl, ''].map(this.escapeCsv).join(','),
+            ['Audit Timestamp', new Date().toISOString(), ''].map(this.escapeCsv).join(','),
+            ['Total Pages Audited', String(total), ''].map(this.escapeCsv).join(','),
+            ['Average Speed Score', `${avgScore}% (${overallRating})`, avgScore >= 80 ? 'Good Web Performance' : 'Needs Optimization'].map(this.escapeCsv).join(','),
+            ['Average TTFB (Server Response)', `${avgTtfb} ms`, avgTtfb <= 400 ? 'Fast (<= 400ms)' : 'Slow (> 600ms)'].map(this.escapeCsv).join(','),
+            ['Average First Contentful Paint (FCP)', `${avgFcp} s`, parseFloat(avgFcp) <= 1.8 ? 'Fast (<= 1.8s)' : 'Slow (> 1.8s)'].map(this.escapeCsv).join(','),
+            ['Average Total Page Load Time', `${avgLoadTime} s`, parseFloat(avgLoadTime) <= 3.0 ? 'Optimal (<= 3.0s)' : 'Delayed (> 3.5s)'].map(this.escapeCsv).join(','),
+            ['Average Total Page Weight', `${avgPayload} KB`, avgPayload <= 1500 ? 'Lightweight (<= 1.5MB)' : 'Heavy (> 1.5MB)'].map(this.escapeCsv).join(','),
+            ['Total Bottlenecks Detected', String(totalBottlenecks), totalBottlenecks > 0 ? 'Review performance fixes' : 'Zero bottlenecks'].map(this.escapeCsv).join(',')
+        ];
+        return rows.join('\r\n');
+    }
+    static renderSummaryHtml(results, targetUrl) {
+        const total = results.length;
+        const avgScore = total > 0 ? Math.round(results.reduce((acc, r) => acc + r.score, 0) / total) : 0;
+        const avgLoadTime = total > 0 ? (results.reduce((acc, r) => acc + r.metrics.loadCompleteMs, 0) / total / 1000).toFixed(2) : '0';
+        const avgTtfb = total > 0 ? Math.round(results.reduce((acc, r) => acc + r.metrics.ttfbMs, 0) / total) : 0;
+        const avgFcp = total > 0 ? (results.reduce((acc, r) => acc + r.metrics.fcpMs, 0) / total / 1000).toFixed(2) : '0';
+        const avgPayload = total > 0 ? Math.round(results.reduce((acc, r) => acc + r.resources.totalTransferSizeKb, 0) / total) : 0;
+        const totalBottlenecks = results.reduce((acc, r) => acc + r.bottlenecks.length, 0);
+        let overallRating = 'Good';
+        let ratingColor = 'var(--success)';
+        if (avgScore < 55) {
+            overallRating = 'Poor';
+            ratingColor = 'var(--danger)';
+        }
+        else if (avgScore < 80) {
+            overallRating = 'Needs Improvement';
+            ratingColor = 'var(--warning)';
+        }
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Page Speed Executive Summary - ${this.escapeHtml(targetUrl)}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19; --card: #111827; --card-border: #1f2937;
+      --text: #f9fafb; --muted: #9ca3af; --primary: #3b82f6;
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 40px 20px; line-height: 1.6; }
+    .container { max-width: 900px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 35px; }
+    .badge { display: inline-block; padding: 6px 14px; border-radius: 9999px; background: rgba(59,130,246,0.15); color: var(--primary); font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+    h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+    .url { color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 14px; word-break: break-all; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 30px; }
+    .kpi-card { background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px; text-align: center; }
+    .kpi-val { font-size: 32px; font-weight: 800; margin-bottom: 4px; }
+    .kpi-label { font-size: 13px; color: var(--muted); text-transform: uppercase; font-weight: 600; }
+    .table-box { background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: 14px 18px; border-bottom: 1px solid var(--card-border); font-size: 14px; }
+    th { background: #1f2937; color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="badge">EXECUTIVE SUMMARY REPORT</div>
+      <h1>⚡ Page Speed & Web Vitals Summary</h1>
+      <div class="url">${this.escapeHtml(targetUrl)}</div>
+    </div>
+
+    <div class="grid">
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: ${ratingColor};">${avgScore}%</div>
+        <div class="kpi-label">Speed Score (${overallRating})</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: var(--primary);">${avgLoadTime}s</div>
+        <div class="kpi-label">Avg Load Time</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: ${avgTtfb <= 400 ? 'var(--success)' : 'var(--warning)'};">${avgTtfb}ms</div>
+        <div class="kpi-label">Avg TTFB</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: var(--text);">${avgPayload} KB</div>
+        <div class="kpi-label">Avg Total Weight</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: ${totalBottlenecks > 0 ? 'var(--warning)' : 'var(--success)'};">${totalBottlenecks}</div>
+        <div class="kpi-label">Bottlenecks</div>
+      </div>
+    </div>
+
+    <div class="table-box">
+      <table>
+        <thead>
+          <tr>
+            <th>Web Vital / Metric</th>
+            <th>Measured Average</th>
+            <th>Target Standard</th>
+            <th>Assessment</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Time to First Byte (TTFB)</strong></td>
+            <td>${avgTtfb} ms</td>
+            <td>&le; 400 ms</td>
+            <td><span style="color: ${avgTtfb <= 400 ? 'var(--success)' : 'var(--warning)'};">${avgTtfb <= 400 ? '✔ Fast' : '⚠ Optimize server / CDN'}</span></td>
+          </tr>
+          <tr>
+            <td><strong>First Contentful Paint (FCP)</strong></td>
+            <td>${avgFcp} s</td>
+            <td>&le; 1.8 s</td>
+            <td><span style="color: ${parseFloat(avgFcp) <= 1.8 ? 'var(--success)' : 'var(--warning)'};">${parseFloat(avgFcp) <= 1.8 ? '✔ Good' : '⚠ Defer non-critical CSS/JS'}</span></td>
+          </tr>
+          <tr>
+            <td><strong>Total Page Load Time</strong></td>
+            <td>${avgLoadTime} s</td>
+            <td>&le; 3.0 s</td>
+            <td><span style="color: ${parseFloat(avgLoadTime) <= 3.0 ? 'var(--success)' : 'var(--warning)'};">${parseFloat(avgLoadTime) <= 3.0 ? '✔ Fast' : '⚠ Reduce heavy scripts'}</span></td>
+          </tr>
+          <tr>
+            <td><strong>Total Page Weight</strong></td>
+            <td>${avgPayload} KB</td>
+            <td>&le; 1500 KB (1.5MB)</td>
+            <td><span style="color: ${avgPayload <= 1500 ? 'var(--success)' : 'var(--warning)'};">${avgPayload <= 1500 ? '✔ Optimal' : '⚠ Compress images & assets'}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>`;
     }
     static escapeCsv(str) {
         if (str === null || str === undefined)

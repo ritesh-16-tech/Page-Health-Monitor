@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import Table from 'cli-table3';
 export class TerminalReporter {
-    static print(result, htmlReportPath, jsonReportPath, csvReportPath, excelReportPath, summaryCsvPath) {
+    static print(result, htmlReportPath, jsonReportPath, csvReportPath, excelReportPath, summaryCsvPath, summaryHtmlPath) {
         const { summary, actionableFixes, networkTraffic, focus = 'all', pageStatus, seoMetadata, pageSpeed } = result;
         const focusLabels = {
             image: '🖼️  ONLY IMAGES',
@@ -13,7 +13,7 @@ export class TerminalReporter {
             all: '🛡️  ALL DIAGNOSTICS (Images + Links + APIs + Status + SEO + Speed + Fonts + Console)'
         };
         console.log('\n' + chalk.bold.cyan('='.repeat(95)));
-        console.log(chalk.bold.cyan('        🌐 PAGE SENTINEL - UNIVERSAL WEB HEALTH & DIAGNOSTIC AUDIT'));
+        console.log(chalk.bold.cyan('        🌐 PAGE-HEALTH-MONITOR - UNIVERSAL WEB HEALTH & DIAGNOSTIC AUDIT'));
         console.log(chalk.bold.cyan('='.repeat(95)));
         console.log(`\n${chalk.bold('Target URL:')}    ${chalk.underline.blue(result.targetUrl)}`);
         console.log(`${chalk.bold('Final URL:')}     ${chalk.underline.blue(result.finalPageUrl)}`);
@@ -248,6 +248,9 @@ export class TerminalReporter {
         }
         if (htmlReportPath) {
             console.log(`${chalk.bold('Interactive HTML Dashboard:')} ${chalk.green.underline(htmlReportPath)}`);
+        }
+        if (summaryHtmlPath) {
+            console.log(`${chalk.bold('Executive Summary HTML:')}     ${chalk.green.underline(summaryHtmlPath)}`);
         }
         if (excelReportPath) {
             console.log(`${chalk.bold('Multi-Tab Excel (.xlsx):')}   ${chalk.green.underline(excelReportPath)}`);

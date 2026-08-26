@@ -1,4 +1,4 @@
-# 🛡️ Page Sentinel: Complete Product & Technical Manual
+# 🛡️ Page-Health-Monitor: Complete Product & Technical Manual
 
 > **Comprehensive Web Health, 404 Finder, SEO Metadata, Page Speed, Asset Diagnostic Auditor & Report Manager**  
 > *A unified reference manual for business stakeholders, SEO specialists, product managers, and engineering teams.*
@@ -37,24 +37,24 @@
 
 ## 🏢 Executive Summary (Non-Technical)
 
-### What is Page Sentinel?
-**Page Sentinel** is an automated web quality assurance tool. Just as an automobile undergoes multi-point inspections, Page Sentinel tests any webpage, bulk list of URLs, or entire website sitemap across **8 diagnostic dimensions**:
+### What is Page-Health-Monitor?
+**Page-Health-Monitor** is an automated web quality assurance tool. Just as an automobile undergoes multi-point inspections, Page-Health-Monitor tests any webpage, bulk list of URLs, or entire website sitemap across **8 diagnostic dimensions**:
 
 ```
                                ┌────────────────────────────────┐
-                               │   PAGE SENTINEL AUDITOR        │
+                               │   PAGE-HEALTH-MONITOR AUDITOR  │
                                └───────────────┬────────────────┘
          ┌──────────────────┬──────────────────┼──────────────────┬──────────────────┐
          ▼                  ▼                  ▼                  ▼                  ▼
    🔍 404 & Status    📈 SEO Meta       ⚡ Page Speed      🖼️ Image Quality   🔗 Broken Links
    Find broken URLs   Rank higher on     Improve loading    Fix missing imgs   Fix bad redirects
-   & server crashes   Google search      & responsiveness   & accessibility    & dead hyperlinks
+   & bad redirects    Google search      & conversions      & accessibility    in navigation
 ```
 
 ### Why Does It Matter?
 - **Customer Experience**: Prevents shoppers and visitors from seeing frustrating `404 Not Found` pages or broken images.
 - **Search Engine Ranking (SEO)**: Ensures pages have correct titles, descriptions, social preview images, and mobile tags so search engines rank them higher.
-- **Conversion & Speed**: Slow pages lose customers. Page Sentinel measures real load speeds and identifies exact bottlenecks.
+- **Conversion & Speed**: Slow pages lose customers. Page-Health-Monitor measures real load speeds and identifies exact bottlenecks.
 - **Risk Prevention**: Discovers hidden JavaScript errors and failing API calls before users report them.
 - **Clean Workspace**: Integrated report cleaner keeps your workspace organized and frees disk space with one click.
 
@@ -62,7 +62,7 @@
 
 ## 💼 Business Value & Key Benefits
 
-| Stakeholder | How Page Sentinel Helps | Key Metrics Delivered |
+| Stakeholder | How Page-Health-Monitor Helps | Key Metrics Delivered |
 |---|---|---|
 | **Marketing & SEO Teams** | Validates title/description lengths, social share cards (OpenGraph/Twitter), heading structure, and Schema markup. | SEO Health Score (0-100%), SERP snippet preview, social share preview. |
 | **Product & Business Managers** | Protects conversion funnels by uncovering broken navigation, missing product images, and slow pages. | Page pass/fail rates, latency benchmarks, critical issue counts. |
@@ -262,7 +262,7 @@ graph TD
 ## 💻 CLI Flags & Automation Guide
 
 ```text
-Usage: page-sentinel [options] [url]
+Usage: page-health-monitor [options] [url]
 
 Arguments:
   url                         Target URL, Domain, Sitemap XML, or File Path to audit
@@ -337,4 +337,4 @@ reports/
 
 ---
 
-*Page Sentinel is maintained as an enterprise web quality auditor.*
+*Page-Health-Monitor is maintained as an enterprise web quality auditor.*

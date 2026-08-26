@@ -230,7 +230,7 @@ async function generateDocx() {
       spacing: { before: 200, after: 80 },
       children: [
         new TextRun({
-          text: '🛡️ PAGE SENTINEL AUDITOR',
+          text: '🛡️ PAGE-HEALTH-MONITOR AUDITOR',
           font: 'Segoe UI',
           size: 40, // 20pt
           bold: true,
@@ -269,7 +269,7 @@ async function generateDocx() {
   docChildren.push(
     createHeading1('1. Executive Summary (Non-Technical)'),
     createPara(
-      'Page Sentinel is an automated web quality assurance auditor. Just as a vehicle undergoes multi-point inspections, Page Sentinel tests any single webpage, bulk list of URLs, or entire website XML sitemap across 8 core diagnostic dimensions.'
+      'Page-Health-Monitor is an automated web quality assurance auditor. Just as a vehicle undergoes multi-point inspections, Page-Health-Monitor tests any single webpage, bulk list of URLs, or entire website XML sitemap across 8 core diagnostic dimensions.'
     ),
     createCallout(
       'Key Business Goal',
@@ -281,7 +281,7 @@ async function generateDocx() {
   docChildren.push(
     createHeading2('Business Value & Key Stakeholder Benefits'),
     createTable(
-      ['Stakeholder Group', 'How Page Sentinel Helps', 'Key Metrics & Outcomes'],
+      ['Stakeholder Group', 'How Page-Health-Monitor Helps', 'Key Metrics & Outcomes'],
       [
         ['Marketing & SEO Teams', 'Validates title/description lengths, social share cards (OpenGraph/Twitter), heading structure, and Schema markup.', 'SEO Health Score (0-100%), SERP Snippet Preview, Social Share Previews.'],
         ['Product & Business Managers', 'Protects conversion funnels by uncovering broken navigation, missing product images, and slow pages.', 'Page Pass/Fail Rates, Latency Benchmarks, Critical Error Flags.'],

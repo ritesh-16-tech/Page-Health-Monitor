@@ -14,18 +14,24 @@ export class StatusReporter {
         const excelPath = path.join(targetDir, `page_status_${safeUrl}_${timestamp}.xlsx`);
         const csvPath = path.join(targetDir, `page_status_${safeUrl}_${timestamp}.csv`);
         const jsonPath = path.join(targetDir, `page_status_${safeUrl}_${timestamp}.json`);
+        const summaryCsvPath = path.join(targetDir, `summary_page_status_${safeUrl}_${timestamp}.csv`);
+        const summaryHtmlPath = path.join(targetDir, `summary_page_status_${safeUrl}_${timestamp}.html`);
         await fs.writeFile(htmlPath, this.renderHtml(results, targetUrl), 'utf-8');
         await fs.writeFile(csvPath, this.renderCsv(results), 'utf-8');
+        await fs.writeFile(summaryCsvPath, this.renderSummaryCsv(results, targetUrl), 'utf-8');
+        await fs.writeFile(summaryHtmlPath, this.renderSummaryHtml(results, targetUrl), 'utf-8');
         await fs.writeFile(jsonPath, JSON.stringify({ targetUrl, timestamp: new Date().toISOString(), total: results.length, results }, null, 2), 'utf-8');
         await this.generateExcel(results, targetUrl, excelPath);
         return {
             htmlPath: path.resolve(htmlPath),
             excelPath: path.resolve(excelPath),
             csvPath: path.resolve(csvPath),
+            summaryCsvPath: path.resolve(summaryCsvPath),
+            summaryHtmlPath: path.resolve(summaryHtmlPath),
             jsonPath: path.resolve(jsonPath)
         };
     }
-    static printTerminal(results, targetUrl, htmlPath, excelPath, csvPath, jsonPath) {
+    static printTerminal(results, targetUrl, htmlPath, excelPath, csvPath, jsonPath, summaryHtmlPath, summaryCsvPath) {
         const total = results.length;
         const count200 = results.filter((r) => r.httpStatus === 200).length;
         const count3xx = results.filter((r) => r.isRedirect).length;
@@ -33,7 +39,7 @@ export class StatusReporter {
         const count5xx = results.filter((r) => r.httpStatus >= 500).length;
         const countOther = results.filter((r) => r.isError && !r.is404 && r.httpStatus < 500).length;
         console.log('\n' + chalk.bold.cyan('='.repeat(95)));
-        console.log(chalk.bold.cyan('        🌐 PAGE SENTINEL - 404 FINDER & PAGE STATUS AUDIT REPORT'));
+        console.log(chalk.bold.cyan('        🌐 PAGE-HEALTH-MONITOR - 404 FINDER & PAGE STATUS AUDIT REPORT'));
         console.log(chalk.bold.cyan('='.repeat(95)));
         console.log(`\n${chalk.bold('Target:')}        ${chalk.underline.blue(targetUrl)}`);
         console.log(`${chalk.bold('Total Checked:')} ${chalk.white.bold(total)} pages`);
@@ -58,13 +64,14 @@ export class StatusReporter {
                 statusColor = chalk.red.bold;
             else if (item.isRedirect)
                 statusColor = chalk.yellow.bold;
-            const hops = item.redirectHops.length > 0 ? `Redirect (${item.redirectHops.length} hops)\n-> ${item.finalUrl}` : 'Direct';
+            const hopsInfo = item.redirectHops.length > 0 ? `(${item.redirectHops.length} hops) ${item.finalUrl}` : (item.isRedirect ? item.finalUrl : 'Direct');
+            const fixInfo = item.suggestedFix || (item.reason || 'Status Normal (200 OK)');
             table.push([
-                statusColor(`${item.httpStatus || 'FAIL'} ${item.statusText}`),
-                item.url,
-                `${item.responseTimeMs}ms`,
-                hops,
-                item.suggestedFix || item.reason || 'Status Normal (200 OK)'
+                statusColor(`${item.httpStatus} ${item.is404 ? 'NOT FOUND' : (item.httpStatus === 200 ? 'OK' : '')}`.trim()),
+                chalk.white(item.url),
+                chalk.yellow(`${item.responseTimeMs}ms`),
+                chalk.gray(hopsInfo),
+                chalk.white(fixInfo)
             ]);
         }
         console.log('\n' + table.toString());
@@ -76,10 +83,14 @@ export class StatusReporter {
         }
         if (htmlPath)
             console.log(`${chalk.bold('Interactive HTML Dashboard:')} ${chalk.green.underline(htmlPath)}`);
+        if (summaryHtmlPath)
+            console.log(`${chalk.bold('Executive Summary HTML:')}     ${chalk.green.underline(summaryHtmlPath)}`);
         if (excelPath)
             console.log(`${chalk.bold('Excel (.xlsx) Report:')}        ${chalk.green.underline(excelPath)}`);
         if (csvPath)
-            console.log(`${chalk.bold('CSV Report:')}                 ${chalk.green.underline(csvPath)}`);
+            console.log(`${chalk.bold('CSV Detailed Report:')}          ${chalk.green.underline(csvPath)}`);
+        if (summaryCsvPath)
+            console.log(`${chalk.bold('Summary Table CSV Report:')}   ${chalk.green.underline(summaryCsvPath)}`);
         if (jsonPath)
             console.log(`${chalk.bold('JSON Data Export:')}          ${chalk.green.underline(jsonPath)}`);
         console.log(chalk.bold.cyan('='.repeat(95)) + '\n');
@@ -124,7 +135,7 @@ export class StatusReporter {
     }
     static async generateExcel(results, targetUrl, filePath) {
         const workbook = new ExcelJS.Workbook();
-        workbook.creator = 'Page Sentinel Auditor';
+        workbook.creator = 'Page-Health-Monitor Auditor';
         workbook.created = new Date();
         const sheet = workbook.addWorksheet('Page Status & 404 Report', {
             views: [{ state: 'frozen', ySplit: 1 }]
@@ -351,6 +362,141 @@ export class StatusReporter {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
+    }
+    static renderSummaryCsv(results, targetUrl) {
+        const total = results.length;
+        const count200 = results.filter((r) => r.httpStatus === 200).length;
+        const count3xx = results.filter((r) => r.isRedirect).length;
+        const count404 = results.filter((r) => r.is404).length;
+        const count5xx = results.filter((r) => r.httpStatus >= 500).length;
+        const countOther = results.filter((r) => r.isError && !r.is404 && r.httpStatus < 500).length;
+        const avgLatency = total > 0 ? Math.round(results.reduce((acc, r) => acc + (r.responseTimeMs || 0), 0) / total) : 0;
+        const passRate = total > 0 ? ((count200 / total) * 100).toFixed(1) : '100';
+        const rows = [
+            ['Metric / KPI', 'Value', 'Status / Notes'].map(this.escapeCsv).join(','),
+            ['Target Domain / Input', targetUrl, ''].map(this.escapeCsv).join(','),
+            ['Audit Timestamp', new Date().toISOString(), ''].map(this.escapeCsv).join(','),
+            ['Total Pages Audited', String(total), ''].map(this.escapeCsv).join(','),
+            ['200 OK (Healthy Pages)', String(count200), `${passRate}% Pass Rate`].map(this.escapeCsv).join(','),
+            ['3xx Redirects', String(count3xx), count3xx > 0 ? 'Warning: Review redirect chains' : 'Optimal'].map(this.escapeCsv).join(','),
+            ['404 Not Found (Broken)', String(count404), count404 > 0 ? 'CRITICAL: Fix broken URLs' : 'Optimal: Zero 404s'].map(this.escapeCsv).join(','),
+            ['5xx Server Errors', String(count5xx), count5xx > 0 ? 'CRITICAL: Server errors detected' : 'Optimal: Zero 5xx'].map(this.escapeCsv).join(','),
+            ['Other Request Errors', String(countOther), ''].map(this.escapeCsv).join(','),
+            ['Average Latency', `${avgLatency} ms`, avgLatency > 1000 ? 'Slow server response' : 'Normal'].map(this.escapeCsv).join(',')
+        ];
+        return rows.join('\r\n');
+    }
+    static renderSummaryHtml(results, targetUrl) {
+        const total = results.length;
+        const count200 = results.filter((r) => r.httpStatus === 200).length;
+        const count3xx = results.filter((r) => r.isRedirect).length;
+        const count404 = results.filter((r) => r.is404).length;
+        const count5xx = results.filter((r) => r.httpStatus >= 500).length;
+        const avgLatency = total > 0 ? Math.round(results.reduce((acc, r) => acc + (r.responseTimeMs || 0), 0) / total) : 0;
+        const passRate = total > 0 ? ((count200 / total) * 100).toFixed(1) : '100';
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Page Status Executive Summary - ${this.escapeHtml(targetUrl)}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19; --card: #111827; --card-border: #1f2937;
+      --text: #f9fafb; --muted: #9ca3af; --primary: #3b82f6;
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 40px 20px; line-height: 1.6; }
+    .container { max-width: 900px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 35px; }
+    .badge { display: inline-block; padding: 6px 14px; border-radius: 9999px; background: rgba(59,130,246,0.15); color: var(--primary); font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+    h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+    .url { color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 14px; word-break: break-all; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 30px; }
+    .kpi-card { background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px; text-align: center; }
+    .kpi-val { font-size: 32px; font-weight: 800; margin-bottom: 4px; }
+    .kpi-label { font-size: 13px; color: var(--muted); text-transform: uppercase; font-weight: 600; }
+    .verdict-box { background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; padding: 24px; margin-bottom: 30px; }
+    .table-box { background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: 14px 18px; border-bottom: 1px solid var(--card-border); font-size: 14px; }
+    th { background: #1f2937; color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="badge">EXECUTIVE SUMMARY REPORT</div>
+      <h1>🌐 Page Status & 404 Health Summary</h1>
+      <div class="url">${this.escapeHtml(targetUrl)}</div>
+    </div>
+
+    <div class="grid">
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: var(--primary);">${total}</div>
+        <div class="kpi-label">Pages Checked</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: var(--success);">${count200}</div>
+        <div class="kpi-label">200 OK (${passRate}%)</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: ${count404 > 0 ? 'var(--danger)' : 'var(--muted)'};">${count404}</div>
+        <div class="kpi-label">404 Broken</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: ${count3xx > 0 ? 'var(--warning)' : 'var(--muted)'};">${count3xx}</div>
+        <div class="kpi-label">3xx Redirects</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: var(--text);">${avgLatency} ms</div>
+        <div class="kpi-label">Avg Latency</div>
+      </div>
+    </div>
+
+    <div class="table-box">
+      <table>
+        <thead>
+          <tr>
+            <th>Status / Category</th>
+            <th>Count</th>
+            <th>Percentage</th>
+            <th>Health Assessment</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>200 OK (Normal)</strong></td>
+            <td>${count200}</td>
+            <td>${passRate}%</td>
+            <td><span style="color: var(--success);">✔ Healthy</span></td>
+          </tr>
+          <tr>
+            <td><strong>3xx Redirects</strong></td>
+            <td>${count3xx}</td>
+            <td>${total > 0 ? ((count3xx / total) * 100).toFixed(1) : 0}%</td>
+            <td><span style="color: ${count3xx > 0 ? 'var(--warning)' : 'var(--muted)'};">${count3xx > 0 ? '⚠ Review redirect chains' : '✔ Optimal'}</span></td>
+          </tr>
+          <tr>
+            <td><strong>404 Not Found</strong></td>
+            <td>${count404}</td>
+            <td>${total > 0 ? ((count404 / total) * 100).toFixed(1) : 0}%</td>
+            <td><span style="color: ${count404 > 0 ? 'var(--danger)' : 'var(--muted)'};">${count404 > 0 ? '✖ Critical: Broken URLs' : '✔ Zero 404s'}</span></td>
+          </tr>
+          <tr>
+            <td><strong>5xx Server Errors</strong></td>
+            <td>${count5xx}</td>
+            <td>${total > 0 ? ((count5xx / total) * 100).toFixed(1) : 0}%</td>
+            <td><span style="color: ${count5xx > 0 ? 'var(--danger)' : 'var(--muted)'};">${count5xx > 0 ? '✖ Critical: Server crash' : '✔ Zero 5xx'}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>`;
     }
     static escapeCsv(str) {
         if (str === null || str === undefined)

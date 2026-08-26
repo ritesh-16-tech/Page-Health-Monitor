@@ -14,18 +14,24 @@ export class SeoReporter {
         const excelPath = path.join(targetDir, `seo_report_${safeUrl}_${timestamp}.xlsx`);
         const csvPath = path.join(targetDir, `seo_report_${safeUrl}_${timestamp}.csv`);
         const jsonPath = path.join(targetDir, `seo_report_${safeUrl}_${timestamp}.json`);
+        const summaryCsvPath = path.join(targetDir, `summary_seo_report_${safeUrl}_${timestamp}.csv`);
+        const summaryHtmlPath = path.join(targetDir, `summary_seo_report_${safeUrl}_${timestamp}.html`);
         await fs.writeFile(htmlPath, this.renderHtml(results, targetUrl), 'utf-8');
         await fs.writeFile(csvPath, this.renderCsv(results), 'utf-8');
+        await fs.writeFile(summaryCsvPath, this.renderSummaryCsv(results, targetUrl), 'utf-8');
+        await fs.writeFile(summaryHtmlPath, this.renderSummaryHtml(results, targetUrl), 'utf-8');
         await fs.writeFile(jsonPath, JSON.stringify({ targetUrl, timestamp: new Date().toISOString(), total: results.length, results }, null, 2), 'utf-8');
         await this.generateExcel(results, targetUrl, excelPath);
         return {
             htmlPath: path.resolve(htmlPath),
             excelPath: path.resolve(excelPath),
             csvPath: path.resolve(csvPath),
+            summaryCsvPath: path.resolve(summaryCsvPath),
+            summaryHtmlPath: path.resolve(summaryHtmlPath),
             jsonPath: path.resolve(jsonPath)
         };
     }
-    static printTerminal(results, targetUrl, htmlPath, excelPath, csvPath, jsonPath) {
+    static printTerminal(results, targetUrl, htmlPath, excelPath, csvPath, jsonPath, summaryHtmlPath, summaryCsvPath) {
         const total = results.length;
         const avgScore = total > 0 ? Math.round(results.reduce((acc, r) => acc + r.score, 0) / total) : 0;
         const missingTitleCount = results.filter((r) => r.titleStatus === 'missing').length;
@@ -33,7 +39,7 @@ export class SeoReporter {
         const missingH1Count = results.filter((r) => r.headings.h1Status === 'missing').length;
         const missingCanonicalCount = results.filter((r) => r.canonicalStatus === 'missing').length;
         console.log('\n' + chalk.bold.cyan('='.repeat(95)));
-        console.log(chalk.bold.cyan('        🔍 PAGE SENTINEL - SEO METADATA AUDIT REPORT'));
+        console.log(chalk.bold.cyan('        🔍 PAGE-HEALTH-MONITOR - SEO METADATA AUDIT REPORT'));
         console.log(chalk.bold.cyan('='.repeat(95)));
         console.log(`\n${chalk.bold('Target:')}        ${chalk.underline.blue(targetUrl)}`);
         console.log(`${chalk.bold('Pages Audited:')} ${chalk.white.bold(total)}`);
@@ -60,14 +66,14 @@ export class SeoReporter {
             colWidths: [10, 24, 20, 22, 18, 16],
             wordWrap: true
         });
-        for (const r of results.slice(0, 15)) {
-            const titleSnippet = `${r.title ? `"${r.title.slice(0, 35)}..."` : chalk.red('MISSING')}\n(${r.titleLength} ch)`;
-            const descSnippet = `${r.description ? `"${r.description.slice(0, 40)}..."` : chalk.red('MISSING')}\n(${r.descriptionLength} ch)`;
-            const h1Snippet = r.headings.h1Count === 1 ? chalk.green(`✔ ${r.headings.h1[0].slice(0, 30)}`) : (r.headings.h1Count === 0 ? chalk.red('✖ Missing H1') : chalk.yellow(`⚠ ${r.headings.h1Count} H1s`));
-            const canonSnippet = `Canon: ${r.canonicalStatus === 'valid' ? chalk.green('✔') : chalk.yellow('⚠')}\nOG: ${r.openGraph.hasOgImage ? chalk.green('✔') : chalk.red('✖')}`;
+        for (const item of results.slice(0, 15)) {
+            const titleSnippet = item.title ? `"${item.title.slice(0, 25)}..." (${item.titleLength} ch)` : chalk.red('MISSING');
+            const descSnippet = item.description ? `"${item.description.slice(0, 25)}..." (${item.descriptionLength} ch)` : chalk.red('MISSING (0 ch)');
+            const h1Snippet = item.headings.h1Count === 1 ? `✔ ${item.headings.h1[0]?.slice(0, 20)}` : (item.headings.h1Count === 0 ? chalk.red('MISSING') : chalk.yellow(`Multiple (${item.headings.h1Count})`));
+            const canonSnippet = `Canon: ${item.canonicalStatus === 'valid' ? '✔' : (item.canonicalStatus === 'mismatch' ? '⚠' : '✖')}\nOG: ${item.openGraph.hasOgImage ? '✔' : '✖'}`;
             table.push([
-                this.formatScoreChalk(r.score) + ` (${r.grade})`,
-                r.url,
+                this.formatScoreChalk(item.score) + ` (${item.grade})`,
+                chalk.white(item.url),
                 titleSnippet,
                 descSnippet,
                 h1Snippet,
@@ -80,10 +86,14 @@ export class SeoReporter {
         }
         if (htmlPath)
             console.log(`\n${chalk.bold('Interactive HTML Dashboard:')} ${chalk.green.underline(htmlPath)}`);
+        if (summaryHtmlPath)
+            console.log(`${chalk.bold('Executive Summary HTML:')}     ${chalk.green.underline(summaryHtmlPath)}`);
         if (excelPath)
             console.log(`${chalk.bold('Excel (.xlsx) Report:')}        ${chalk.green.underline(excelPath)}`);
         if (csvPath)
-            console.log(`${chalk.bold('CSV Report:')}                 ${chalk.green.underline(csvPath)}`);
+            console.log(`${chalk.bold('CSV Detailed Report:')}          ${chalk.green.underline(csvPath)}`);
+        if (summaryCsvPath)
+            console.log(`${chalk.bold('Summary Table CSV Report:')}   ${chalk.green.underline(summaryCsvPath)}`);
         if (jsonPath)
             console.log(`${chalk.bold('JSON Data Export:')}          ${chalk.green.underline(jsonPath)}`);
         console.log(chalk.bold.cyan('='.repeat(95)) + '\n');
@@ -169,7 +179,7 @@ export class SeoReporter {
     }
     static async generateExcel(results, targetUrl, filePath) {
         const workbook = new ExcelJS.Workbook();
-        workbook.creator = 'Page Sentinel Auditor';
+        workbook.creator = 'Page-Health-Monitor Auditor';
         workbook.created = new Date();
         const sheet = workbook.addWorksheet('SEO Metadata Audit', {
             views: [{ state: 'frozen', ySplit: 1 }]
@@ -403,6 +413,178 @@ export class SeoReporter {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
+    }
+    static renderSummaryCsv(results, targetUrl) {
+        const total = results.length;
+        const avgScore = total > 0 ? Math.round(results.reduce((acc, r) => acc + r.score, 0) / total) : 0;
+        const missingTitleCount = results.filter((r) => r.titleStatus === 'missing').length;
+        const missingDescCount = results.filter((r) => r.descriptionStatus === 'missing').length;
+        const missingH1Count = results.filter((r) => r.headings.h1Count === 0).length;
+        const missingCanonCount = results.filter((r) => r.canonicalStatus === 'missing').length;
+        const missingOgImageCount = results.filter((r) => !r.openGraph.hasOgImage).length;
+        let overallGrade = 'F';
+        if (avgScore >= 95)
+            overallGrade = 'A+';
+        else if (avgScore >= 85)
+            overallGrade = 'A';
+        else if (avgScore >= 70)
+            overallGrade = 'B';
+        else if (avgScore >= 55)
+            overallGrade = 'C';
+        else if (avgScore >= 40)
+            overallGrade = 'D';
+        const rows = [
+            ['Metric / KPI', 'Value', 'Status / Recommendation'].map(this.escapeCsv).join(','),
+            ['Target Domain / Input', targetUrl, ''].map(this.escapeCsv).join(','),
+            ['Audit Timestamp', new Date().toISOString(), ''].map(this.escapeCsv).join(','),
+            ['Total Pages Audited', String(total), ''].map(this.escapeCsv).join(','),
+            ['Average SEO Score', `${avgScore}% (Grade ${overallGrade})`, avgScore >= 85 ? 'Good SEO Health' : 'Needs Optimization'].map(this.escapeCsv).join(','),
+            ['Missing <title> Tags', String(missingTitleCount), missingTitleCount > 0 ? 'Fix: Add unique title tags' : 'Optimal'].map(this.escapeCsv).join(','),
+            ['Missing Meta Descriptions', String(missingDescCount), missingDescCount > 0 ? 'Fix: Add meta description snippets' : 'Optimal'].map(this.escapeCsv).join(','),
+            ['Missing <h1> Headings', String(missingH1Count), missingH1Count > 0 ? 'Fix: Add primary <h1> heading' : 'Optimal'].map(this.escapeCsv).join(','),
+            ['Missing Canonical Tags', String(missingCanonCount), missingCanonCount > 0 ? 'Fix: Add self-referencing canonicals' : 'Optimal'].map(this.escapeCsv).join(','),
+            ['Missing OpenGraph Images', String(missingOgImageCount), missingOgImageCount > 0 ? 'Fix: Add og:image for social cards' : 'Optimal'].map(this.escapeCsv).join(',')
+        ];
+        return rows.join('\r\n');
+    }
+    static renderSummaryHtml(results, targetUrl) {
+        const total = results.length;
+        const avgScore = total > 0 ? Math.round(results.reduce((acc, r) => acc + r.score, 0) / total) : 0;
+        const missingTitleCount = results.filter((r) => r.titleStatus === 'missing').length;
+        const missingDescCount = results.filter((r) => r.descriptionStatus === 'missing').length;
+        const missingH1Count = results.filter((r) => r.headings.h1Count === 0).length;
+        const missingCanonCount = results.filter((r) => r.canonicalStatus === 'missing').length;
+        const missingOgImageCount = results.filter((r) => !r.openGraph.hasOgImage).length;
+        let overallGrade = 'F';
+        let gradeColor = 'var(--danger)';
+        if (avgScore >= 95) {
+            overallGrade = 'A+';
+            gradeColor = 'var(--success)';
+        }
+        else if (avgScore >= 85) {
+            overallGrade = 'A';
+            gradeColor = 'var(--success)';
+        }
+        else if (avgScore >= 70) {
+            overallGrade = 'B';
+            gradeColor = 'var(--warning)';
+        }
+        else if (avgScore >= 55) {
+            overallGrade = 'C';
+            gradeColor = '#f97316';
+        }
+        else if (avgScore >= 40) {
+            overallGrade = 'D';
+            gradeColor = 'var(--danger)';
+        }
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEO Metadata Executive Summary - ${this.escapeHtml(targetUrl)}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19; --card: #111827; --card-border: #1f2937;
+      --text: #f9fafb; --muted: #9ca3af; --primary: #3b82f6;
+      --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 40px 20px; line-height: 1.6; }
+    .container { max-width: 900px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 35px; }
+    .badge { display: inline-block; padding: 6px 14px; border-radius: 9999px; background: rgba(59,130,246,0.15); color: var(--primary); font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+    h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+    .url { color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 14px; word-break: break-all; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 30px; }
+    .kpi-card { background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; padding: 20px; text-align: center; }
+    .kpi-val { font-size: 32px; font-weight: 800; margin-bottom: 4px; }
+    .kpi-label { font-size: 13px; color: var(--muted); text-transform: uppercase; font-weight: 600; }
+    .table-box { background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: 14px 18px; border-bottom: 1px solid var(--card-border); font-size: 14px; }
+    th { background: #1f2937; color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="badge">EXECUTIVE SUMMARY REPORT</div>
+      <h1>📈 SEO Metadata & Social Optimization Summary</h1>
+      <div class="url">${this.escapeHtml(targetUrl)}</div>
+    </div>
+
+    <div class="grid">
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: ${gradeColor};">${avgScore}%</div>
+        <div class="kpi-label">SEO Score (${overallGrade})</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: var(--primary);">${total}</div>
+        <div class="kpi-label">Pages Audited</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: ${missingTitleCount > 0 ? 'var(--danger)' : 'var(--success)'};">${missingTitleCount}</div>
+        <div class="kpi-label">Missing Title</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: ${missingDescCount > 0 ? 'var(--danger)' : 'var(--success)'};">${missingDescCount}</div>
+        <div class="kpi-label">Missing Description</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-val" style="color: ${missingH1Count > 0 ? 'var(--warning)' : 'var(--success)'};">${missingH1Count}</div>
+        <div class="kpi-label">Missing H1</div>
+      </div>
+    </div>
+
+    <div class="table-box">
+      <table>
+        <thead>
+          <tr>
+            <th>SEO Dimension</th>
+            <th>Pages Missing / Issue Count</th>
+            <th>Impact Level</th>
+            <th>Recommendation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Page Title (<title>)</strong></td>
+            <td>${missingTitleCount} / ${total} pages</td>
+            <td><span style="color: ${missingTitleCount > 0 ? 'var(--danger)' : 'var(--success)'};">${missingTitleCount > 0 ? 'High' : 'Optimal'}</span></td>
+            <td>${missingTitleCount > 0 ? 'Add unique titles between 30-60 characters.' : 'All titles present and optimal.'}</td>
+          </tr>
+          <tr>
+            <td><strong>Meta Description</strong></td>
+            <td>${missingDescCount} / ${total} pages</td>
+            <td><span style="color: ${missingDescCount > 0 ? 'var(--danger)' : 'var(--success)'};">${missingDescCount > 0 ? 'High' : 'Optimal'}</span></td>
+            <td>${missingDescCount > 0 ? 'Add compelling descriptions between 70-160 characters.' : 'All descriptions present.'}</td>
+          </tr>
+          <tr>
+            <td><strong>Heading 1 (<h1>)</strong></td>
+            <td>${missingH1Count} / ${total} pages</td>
+            <td><span style="color: ${missingH1Count > 0 ? 'var(--warning)' : 'var(--success)'};">${missingH1Count > 0 ? 'Medium' : 'Optimal'}</span></td>
+            <td>${missingH1Count > 0 ? 'Ensure exactly one <h1> tag exists per page.' : 'Heading structure valid.'}</td>
+          </tr>
+          <tr>
+            <td><strong>Canonical Link</strong></td>
+            <td>${missingCanonCount} / ${total} pages</td>
+            <td><span style="color: ${missingCanonCount > 0 ? 'var(--warning)' : 'var(--success)'};">${missingCanonCount > 0 ? 'Medium' : 'Optimal'}</span></td>
+            <td>${missingCanonCount > 0 ? 'Add self-referencing canonical URL tag.' : 'Canonical tags configured.'}</td>
+          </tr>
+          <tr>
+            <td><strong>OpenGraph Social Preview</strong></td>
+            <td>${missingOgImageCount} / ${total} pages</td>
+            <td><span style="color: ${missingOgImageCount > 0 ? 'var(--warning)' : 'var(--success)'};">${missingOgImageCount > 0 ? 'Low-Medium' : 'Optimal'}</span></td>
+            <td>${missingOgImageCount > 0 ? 'Add og:image for rich social sharing cards.' : 'OpenGraph images configured.'}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>`;
     }
     static escapeCsv(str) {
         if (str === null || str === undefined)
