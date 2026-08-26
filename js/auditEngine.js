@@ -74,8 +74,8 @@ window.PageSentinelAuditEngine = {
       if (crawlSitemap) {
         log(`Auto-crawl enabled. Discovering sitemap / links for ${url}...`, 'info');
         try {
-          const baseOrigin = new URL(url).origin;
-          const discovered = await this.parseAndExtractSitemapUrls(`${baseOrigin}/sitemap.xml`, corsProxy, log);
+          const sitemapTarget = (url.endsWith('.xml') || url.includes('sitemap')) ? url : `${new URL(url).origin}/sitemap.xml`;
+          const discovered = await this.parseAndExtractSitemapUrls(sitemapTarget, corsProxy, log);
           if (discovered.length > 0) {
             const count = limitType === 'limit' && pageCountLimit ? Math.min(pageCountLimit, discovered.length) : discovered.length;
             urlsToAudit = discovered.slice(0, count);
@@ -463,8 +463,11 @@ window.PageSentinelAuditEngine = {
    * Fetches URL with local server proxy and multi-proxy fallback
    */
   async fetchWithCorsFallback(url, preferredProxy = 'auto') {
-    // 1. If running on local server (http/https), try the local proxy endpoint /api/proxy?url=
-    if (window.location && window.location.protocol.startsWith('http')) {
+    // 1. If running on local Node dev server, use the local proxy endpoint
+    const isLocalServer = typeof window !== 'undefined' && 
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.port === '8933');
+    
+    if (isLocalServer) {
       try {
         const localProxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
         const res = await fetch(localProxyUrl);
@@ -480,41 +483,59 @@ window.PageSentinelAuditEngine = {
           }
         }
       } catch (e) {
-        // Fall through to public proxies
+        // Fall through
       }
     }
 
-    // 2. Try Direct Fetch if on same host or localhost
+    // 2. Direct fetch if direct mode or same host
     if (preferredProxy === 'direct' || url.includes('localhost') || url.includes('127.0.0.1')) {
-      const res = await fetch(url, { mode: 'cors' });
-      const text = await res.text();
-      return { html: text, status: res.status, statusText: res.statusText, contentType: res.headers.get('content-type') };
+      try {
+        const res = await fetch(url, { mode: 'cors' });
+        const text = await res.text();
+        return { html: text, status: res.status, statusText: res.statusText, contentType: res.headers.get('content-type') };
+      } catch (e) {
+        // Fall through
+      }
     }
 
-    // 3. Try CorsProxy.io
-    if (preferredProxy === 'corsproxy' || preferredProxy === 'auto') {
-      try {
-        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-        const res = await fetch(proxyUrl);
+    // 3. Chain of public CORS proxies for static hosts (GitHub Pages)
+    const publicProxies = [
+      async () => {
+        const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.contents) {
+            return { html: data.contents, status: data.status?.http_code || 200, statusText: 'OK', contentType: 'text/html' };
+          }
+        }
+        throw new Error('AllOrigins failed');
+      },
+      async () => {
+        const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
+        if (res.ok) {
+          const text = await res.text();
+          if (text && !text.includes('Error 522') && !text.includes('Cloudflare')) {
+            return { html: text, status: res.status, statusText: 'OK', contentType: 'text/html' };
+          }
+        }
+        throw new Error('CodeTabs failed');
+      },
+      async () => {
+        const res = await fetch(`https://thingproxy.freeboard.io/fetch/${url}`);
         if (res.ok) {
           const text = await res.text();
           return { html: text, status: res.status, statusText: 'OK', contentType: 'text/html' };
         }
-      } catch (e) {
-        // Fallthrough to next proxy
+        throw new Error('ThingProxy failed');
       }
-    }
+    ];
 
-    // 4. Try AllOrigins.win
-    try {
-      const allOriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-      const res = await fetch(allOriginsUrl);
-      if (res.ok) {
-        const data = await res.json();
-        return { html: data.contents, status: data.status?.http_code || 200, statusText: 'OK', contentType: 'text/html' };
+    for (const proxyFn of publicProxies) {
+      try {
+        return await proxyFn();
+      } catch (e) {
+        // Continue to next proxy
       }
-    } catch (e) {
-      // Fallthrough
     }
 
     throw new Error('Unable to fetch live external URL (All CORS proxies unavailable).');
