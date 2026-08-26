@@ -1,0 +1,1032 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      Page Sentinel - Universal Web Health, SEO & Diagnostic Auditor
+    </title>
+    <meta
+      name="description"
+      content="Deep diagnostics for web pages: 404 finder, broken images, dead links, API monitor, SEO metadata inspector, and Core Web Vitals auditor."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- SheetJS for Client-Side Excel (.xlsx) Generation -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <link rel="stylesheet" href="css/main.css" />
+    <link rel="stylesheet" href="css/terminal.css" />
+    <link rel="stylesheet" href="css/dashboard.css" />
+  </head>
+  <body>
+    <!-- Top Navigation / Header Bar -->
+    <header class="app-header">
+      <div class="header-container">
+        <div class="brand-section">
+          <div class="brand-icon">
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="shield-icon"
+            >
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <path d="m9 12 2 2 4-4" stroke="#3b82f6" stroke-width="2.5" />
+            </svg>
+          </div>
+          <div class="brand-titles">
+            <h1 class="brand-title">Page Sentinel</h1>
+            <p class="brand-subtitle">
+              Enter a URL, pick what to check, and run the audit — reports land
+              below when it's done.
+            </p>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <a
+            href="https://github.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-secondary btn-sm"
+            title="View Source on GitHub"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"
+              />
+            </svg>
+            <span>GitHub</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-wrapper">
+      <div class="audit-card-container">
+        <!-- CARD 1: URL TO AUDIT & CRAWL OPTIONS -->
+        <section class="card config-card" id="urlConfigCard">
+          <div class="card-header-row">
+            <label class="section-label">AUDIT SOURCE</label>
+            <div class="source-mode-selector">
+              <select id="auditSourceMode" class="source-select">
+                <option value="url">🌐 Single Webpage URL</option>
+                <option value="sitemap">🗺️ Sitemap XML URL</option>
+                <option value="file">📁 Bulk File Upload (.txt, .csv, .xlsx, .json)</option>
+                <option value="manual">✍️ Add URLs One by One</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- MODE 1: Single Webpage URL -->
+          <div class="source-mode-panel" id="panelModeUrl">
+            <div class="form-group">
+              <label for="auditUrl" class="section-sublabel">URL TO AUDIT</label>
+              <div class="url-input-container">
+                <input
+                  type="text"
+                  id="auditUrl"
+                  class="text-input"
+                  placeholder="http://localhost:8933/"
+                  value=""
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+                <button
+                  type="button"
+                  class="btn-icon-clear hidden"
+                  id="clearUrlBtn"
+                  title="Clear URL"
+                >
+                  &times;
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group checkbox-row">
+              <label class="custom-checkbox-container">
+                <input type="checkbox" id="crawlSitemap" checked />
+                <span class="checkmark"></span>
+                <span class="checkbox-label"
+                  >Crawl the entire sitemap (auto-discover sitemap.xml /
+                  robots.txt) instead of just this one page</span
+                >
+              </label>
+            </div>
+
+            <div class="crawl-options-section" id="crawlOptionsSection">
+              <div class="section-sublabel">PAGES TO CRAWL</div>
+
+              <div class="radio-options-row">
+                <label class="custom-radio-container">
+                  <input
+                    type="radio"
+                    name="crawlLimitType"
+                    value="limit"
+                    checked
+                    id="limitCountRadio"
+                  />
+                  <span class="radio-mark"></span>
+                  <span class="radio-label">Limit to a count</span>
+                </label>
+
+                <div class="page-count-input-wrapper">
+                  <input
+                    type="number"
+                    id="pageCountLimit"
+                    class="count-input"
+                    value="10"
+                    min="1"
+                    max="500"
+                  />
+                </div>
+              </div>
+
+              <div class="radio-options-row">
+                <label class="custom-radio-container">
+                  <input
+                    type="radio"
+                    name="crawlLimitType"
+                    value="all"
+                    id="allPagesRadio"
+                  />
+                  <span class="radio-mark"></span>
+                  <span class="radio-label">All discovered pages</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- MODE 2: Sitemap XML URL -->
+          <div class="source-mode-panel hidden" id="panelModeSitemap">
+            <div class="form-group">
+              <label for="sitemapUrlInput" class="section-sublabel">SITEMAP XML URL</label>
+              <div class="url-input-container">
+                <input
+                  type="text"
+                  id="sitemapUrlInput"
+                  class="text-input"
+                  placeholder="https://example.com/sitemap.xml"
+                  value=""
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+                <button
+                  type="button"
+                  class="btn-icon-clear hidden"
+                  id="clearSitemapUrlBtn"
+                  title="Clear Sitemap URL"
+                >
+                  &times;
+                </button>
+              </div>
+            </div>
+            <div class="radio-options-row" style="margin-top: 12px;">
+              <label class="custom-radio-container">
+                <input
+                  type="radio"
+                  name="sitemapLimitType"
+                  value="limit"
+                  checked
+                  id="sitemapLimitCountRadio"
+                />
+                <span class="radio-mark"></span>
+                <span class="radio-label">Max pages to audit from sitemap:</span>
+              </label>
+              <div class="page-count-input-wrapper">
+                <input
+                  type="number"
+                  id="sitemapPageLimit"
+                  class="count-input"
+                  value="20"
+                  min="1"
+                  max="500"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- MODE 3: Bulk File Upload (.txt, .csv, .xlsx, .json) -->
+          <div class="source-mode-panel hidden" id="panelModeFile">
+            <div class="file-drop-zone" id="fileDropZone">
+              <input type="file" id="bulkFileInput" accept=".txt,.csv,.xlsx,.xls,.json" style="display:none;" />
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <div class="drop-zone-text">
+                <strong>Click to upload</strong> or drag & drop URL list file
+              </div>
+              <div class="drop-zone-hint">
+                Supports <code>.txt</code>, <code>.csv</code>, <code>.xlsx</code>, <code>.xls</code>, and <code>.json</code>
+              </div>
+            </div>
+
+            <!-- Loaded File Queue Status -->
+            <div class="file-queue-status hidden" id="fileQueueStatus">
+              <div class="file-status-header">
+                <span class="file-badge" id="loadedFileName">urls.csv</span>
+                <span class="url-count-badge" id="loadedFileCount">0 URLs Loaded</span>
+                <button type="button" class="btn-clear-queue" id="clearFileQueueBtn">Remove File</button>
+              </div>
+              <div class="url-chips-container" id="fileUrlChips"></div>
+            </div>
+          </div>
+
+          <!-- MODE 4: Add URLs One by One -->
+          <div class="source-mode-panel hidden" id="panelModeManual">
+            <div class="manual-add-row">
+              <div class="url-input-container" style="flex:1;">
+                <input
+                  type="text"
+                  id="manualUrlInput"
+                  class="text-input"
+                  placeholder="Enter a URL to add (e.g. https://example.com/products)"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </div>
+              <button type="button" class="btn-primary-blue" id="addSingleUrlBtn" style="flex:0 0 auto; padding:10px 18px;">
+                <span>+ Add URL</span>
+              </button>
+            </div>
+
+            <div class="manual-queue-container" id="manualQueueContainer">
+              <div class="queue-header">
+                <span class="section-sublabel" id="manualQueueLabel" style="margin:0;">QUEUED URLS (0)</span>
+                <button type="button" class="btn-clear-queue" id="clearManualQueueBtn">Clear All</button>
+              </div>
+              <div class="url-chips-container" id="manualUrlChips">
+                <div class="empty-queue-hint">No URLs added yet. Enter a URL above and click "+ Add URL".</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Collapsible Advanced Settings -->
+          <div class="advanced-settings-drawer">
+            <button
+              type="button"
+              class="drawer-toggle-btn"
+              id="toggleAdvancedBtn"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="3" />
+                <path
+                  d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                />
+              </svg>
+              <span>Advanced Configuration (Timeout, Proxy, User-Agent)</span>
+              <svg
+                class="chevron-icon"
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            <div class="drawer-content" id="advancedDrawerContent">
+              <div class="drawer-grid">
+                <div class="form-field">
+                  <label>Timeout (ms)</label>
+                  <input
+                    type="number"
+                    id="timeoutInput"
+                    class="text-input text-input-sm"
+                    value="30000"
+                    step="5000"
+                  />
+                </div>
+                <div class="form-field">
+                  <label>User Agent</label>
+                  <select id="userAgentSelect" class="text-input text-input-sm">
+                    <option value="desktop">Chrome Desktop (Default)</option>
+                    <option value="mobile">iPhone 15 Mobile Safari</option>
+                    <option value="googlebot">
+                      Googlebot Smartphone (SEO)
+                    </option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label>CORS Bypass Proxy</label>
+                  <select id="corsProxySelect" class="text-input text-input-sm">
+                    <option value="auto">Auto (Multi-Proxy Fallback)</option>
+                    <option value="corsproxy">corsproxy.io</option>
+                    <option value="allorigins">allorigins.win</option>
+                    <option value="direct">
+                      Direct Fetch (Same-Origin / Dev)
+                    </option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label>Concurrency</label>
+                  <input
+                    type="number"
+                    id="concurrencyInput"
+                    class="text-input text-input-sm"
+                    value="5"
+                    min="1"
+                    max="20"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- CARD 2: WHAT TO CHECK -->
+        <section class="card check-card" id="whatToCheckCard">
+          <div class="section-label">WHAT TO CHECK</div>
+
+          <div class="diagnostics-grid">
+            <!-- Option 1: Images -->
+            <label class="diag-card active" data-focus="image">
+              <input type="radio" name="auditFocus" value="image" checked />
+              <div class="diag-radio-indicator"></div>
+              <div class="diag-content">
+                <div class="diag-title">
+                  <span class="diag-icon">🖼️</span>
+                  <strong>Images</strong>
+                </div>
+                <p class="diag-desc">Broken/corrupt images, missing alt</p>
+              </div>
+            </label>
+
+            <!-- Option 2: Links -->
+            <label class="diag-card" data-focus="link">
+              <input type="radio" name="auditFocus" value="link" />
+              <div class="diag-radio-indicator"></div>
+              <div class="diag-content">
+                <div class="diag-title">
+                  <span class="diag-icon">🔗</span>
+                  <strong>Links</strong>
+                </div>
+                <p class="diag-desc">Dead links, redirect chains</p>
+              </div>
+            </label>
+
+            <!-- Option 3: API / Network -->
+            <label class="diag-card" data-focus="api">
+              <input type="radio" name="auditFocus" value="api" />
+              <div class="diag-radio-indicator"></div>
+              <div class="diag-content">
+                <div class="diag-title">
+                  <span class="diag-icon">🌐</span>
+                  <strong>API / Network</strong>
+                </div>
+                <p class="diag-desc">Every request & response</p>
+              </div>
+            </label>
+
+            <!-- Option 4: Status / 404 Finder -->
+            <label class="diag-card" data-focus="status">
+              <input type="radio" name="auditFocus" value="status" />
+              <div class="diag-radio-indicator"></div>
+              <div class="diag-content">
+                <div class="diag-title">
+                  <span class="diag-icon">🔍</span>
+                  <strong>404 & Status</strong>
+                </div>
+                <p class="diag-desc">HTTP status, latency, hops</p>
+              </div>
+            </label>
+
+            <!-- Option 5: SEO Metadata -->
+            <label class="diag-card" data-focus="seo">
+              <input type="radio" name="auditFocus" value="seo" />
+              <div class="diag-radio-indicator"></div>
+              <div class="diag-content">
+                <div class="diag-title">
+                  <span class="diag-icon">📈</span>
+                  <strong>SEO Metadata</strong>
+                </div>
+                <p class="diag-desc">Meta, H1s, OpenGraph, Schema</p>
+              </div>
+            </label>
+
+            <!-- Option 6: Page Speed & Performance -->
+            <label class="diag-card" data-focus="speed">
+              <input type="radio" name="auditFocus" value="speed" />
+              <div class="diag-radio-indicator"></div>
+              <div class="diag-content">
+                <div class="diag-title">
+                  <span class="diag-icon">⚡</span>
+                  <strong>Speed & Vitals</strong>
+                </div>
+                <p class="diag-desc">TTFB, LCP, CLS, payload weights</p>
+              </div>
+            </label>
+
+            <!-- Option 7: All diagnostics -->
+            <label class="diag-card diag-card-all" data-focus="all">
+              <input type="radio" name="auditFocus" value="all" />
+              <div class="diag-radio-indicator"></div>
+              <div class="diag-content">
+                <div class="diag-title">
+                  <span class="diag-icon">✅</span>
+                  <strong>All</strong>
+                </div>
+                <p class="diag-desc">Full diagnostic audit</p>
+              </div>
+            </label>
+          </div>
+        </section>
+
+        <!-- AUDIT ACTION BUTTON -->
+        <div class="audit-btn-wrapper">
+          <button type="button" id="runAuditBtn" class="btn-primary-audit">
+            <span class="btn-text">Run Audit</span>
+            <div class="spinner" id="auditSpinner"></div>
+          </button>
+          <button
+            type="button"
+            id="cancelAuditBtn"
+            class="btn-cancel-audit hidden"
+          >
+            <span>Cancel</span>
+          </button>
+        </div>
+
+        <!-- TERMINAL CONSOLE LOG BOX -->
+        <section class="card terminal-card" id="terminalCard">
+          <div class="terminal-header">
+            <div class="terminal-dots">
+              <span class="dot dot-red"></span>
+              <span class="dot dot-yellow"></span>
+              <span class="dot dot-green"></span>
+            </div>
+            <div class="terminal-title">TERMINAL OUTPUT / AUDIT LOGS</div>
+            <div class="terminal-controls">
+              <button
+                type="button"
+                class="btn-terminal-action"
+                id="copyLogsBtn"
+                title="Copy console logs to clipboard"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path
+                    d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                  />
+                </svg>
+                <span>Copy</span>
+              </button>
+              <button
+                type="button"
+                class="btn-terminal-action"
+                id="clearLogsBtn"
+                title="Clear terminal"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <polyline points="3 6 5 6 21 6" />
+                  <path
+                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                  />
+                </svg>
+                <span>Clear</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="terminal-body" id="terminalOutput">
+            <div class="terminal-line text-muted">
+              Ready. Select configuration above and click "Run Audit" or pick a
+              sample preset.
+            </div>
+          </div>
+        </section>
+
+        <!-- RESULTS SUMMARY & ACTION BAR -->
+        <section class="card summary-card" id="summaryCard">
+          <div class="metrics-grid">
+            <div class="metric-box">
+              <div class="metric-value" id="metricPages">3</div>
+              <div class="metric-label">PAGES</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-value text-critical" id="metricCritical">
+                1
+              </div>
+              <div class="metric-label">CRITICAL</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-value text-warnings" id="metricWarnings">
+                1
+              </div>
+              <div class="metric-label">WARNINGS</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-value text-total" id="metricTotal">2</div>
+              <div class="metric-label">TOTAL ISSUES</div>
+            </div>
+          </div>
+
+          <div class="summary-actions-row">
+            <button
+              type="button"
+              id="openDashboardBtn"
+              class="btn-primary-blue"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+              </svg>
+              <span>Open Dashboard</span>
+            </button>
+            <button type="button" id="downloadExcelBtn" class="btn-dark-glass">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
+              <span>Download Excel</span>
+            </button>
+            <button type="button" id="downloadCsvBtn" class="btn-dark-glass">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              <span>Download CSV</span>
+            </button>
+            <div class="dropdown-wrapper">
+              <button
+                type="button"
+                id="moreExportsBtn"
+                class="btn-dark-glass btn-icon-more"
+                title="More Export Options"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="12" cy="12" r="1" />
+                  <circle cx="19" cy="12" r="1" />
+                  <circle cx="5" cy="12" r="1" />
+                </svg>
+              </button>
+              <div
+                id="moreExportsMenu"
+                class="dropdown-menu dropdown-menu-right"
+              >
+                <button class="dropdown-item" id="downloadJsonBtn">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <polyline points="16 18 22 12 16 6" />
+                    <polyline points="8 6 2 12 8 18" />
+                  </svg>
+                  <span>Download JSON</span>
+                </button>
+                <button class="dropdown-item" id="downloadHtmlBtn">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+                  </svg>
+                  <span>Download Self-Contained HTML</span>
+                </button>
+                <button class="dropdown-item" id="printReportBtn">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <polyline points="6 9 6 2 18 2 18 9" />
+                    <path
+                      d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"
+                    />
+                    <rect x="6" y="14" width="12" height="8" />
+                  </svg>
+                  <span>Print / Save PDF</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- INTERACTIVE AUDIT DASHBOARD MODAL -->
+    <div id="dashboardModal" class="dashboard-modal-overlay hidden">
+      <div class="dashboard-modal-container">
+        <!-- Modal Header -->
+        <div class="dash-header">
+          <div class="dash-title-group">
+            <div class="dash-badge-icon">🛡️</div>
+            <div>
+              <h2 class="dash-title">Audit Diagnostic Report</h2>
+              <div class="dash-subtitle">
+                <span id="dashTargetUrl">http://localhost:8933/</span>
+                <span class="dash-dot-sep">•</span>
+                <span id="dashAuditTimestamp">Just now</span>
+                <span class="dash-dot-sep">•</span>
+                <span class="badge badge-focus" id="dashFocusBadge"
+                  >IMAGE DIAGNOSTICS</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="dash-header-controls">
+            <button
+              type="button"
+              class="btn-dash-export"
+              id="dashDownloadExcel"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              <span>Export Excel</span>
+            </button>
+            <button
+              type="button"
+              class="btn-dash-close"
+              id="closeDashboardBtn"
+              title="Close Dashboard"
+            >
+              &times;
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Metrics Scorecard Bar -->
+        <div class="dash-score-bar">
+          <div class="dash-score-card">
+            <div class="score-card-title">HEALTH SCORE</div>
+            <div class="score-card-val text-score" id="dashHealthScore">
+              85/100
+            </div>
+            <div class="score-card-sub" id="dashHealthGrade">Grade: B+</div>
+          </div>
+          <div class="dash-score-card">
+            <div class="score-card-title">PAGES CRAWLED</div>
+            <div class="score-card-val" id="dashCrawledCount">3</div>
+            <div class="score-card-sub">Discovered via robots.txt</div>
+          </div>
+          <div class="dash-score-card">
+            <div class="score-card-title">CRITICAL ISSUES</div>
+            <div class="score-card-val text-critical" id="dashCritCount">1</div>
+            <div class="score-card-sub">Immediate fixes required</div>
+          </div>
+          <div class="dash-score-card">
+            <div class="score-card-title">WARNINGS</div>
+            <div class="score-card-val text-warnings" id="dashWarnCount">1</div>
+            <div class="score-card-sub">Optimization suggestions</div>
+          </div>
+          <div class="dash-score-card">
+            <div class="score-card-title">ASSETS AUDITED</div>
+            <div class="score-card-val text-primary-acc" id="dashAssetCount">
+              24
+            </div>
+            <div class="score-card-sub">Images, Links, APIs, Meta</div>
+          </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="dash-tabs-nav" id="dashTabsNav">
+          <button class="dash-tab-btn active" data-tab="tab-fixes">
+            <span>🛠️ Actionable Fixes</span>
+            <span class="tab-badge" id="tabBadgeFixes">2</span>
+          </button>
+          <button class="dash-tab-btn" data-tab="tab-images">
+            <span>🖼️ Images</span>
+            <span class="tab-badge" id="tabBadgeImages">2</span>
+          </button>
+          <button class="dash-tab-btn" data-tab="tab-links">
+            <span>🔗 Links</span>
+            <span class="tab-badge" id="tabBadgeLinks">0</span>
+          </button>
+          <button class="dash-tab-btn" data-tab="tab-network">
+            <span>🌐 Network & APIs</span>
+            <span class="tab-badge" id="tabBadgeNetwork">0</span>
+          </button>
+          <button class="dash-tab-btn" data-tab="tab-status">
+            <span>🔍 404 & Status</span>
+            <span class="tab-badge" id="tabBadgeStatus">0</span>
+          </button>
+          <button class="dash-tab-btn" data-tab="tab-seo">
+            <span>📈 SEO & Social</span>
+            <span class="tab-badge" id="tabBadgeSeo">0</span>
+          </button>
+          <button class="dash-tab-btn" data-tab="tab-speed">
+            <span>⚡ Page Speed</span>
+            <span class="tab-badge" id="tabBadgeSpeed">0</span>
+          </button>
+          <button class="dash-tab-btn" data-tab="tab-console">
+            <span>⚠️ JS Console</span>
+            <span class="tab-badge" id="tabBadgeConsole">0</span>
+          </button>
+          <button class="dash-tab-btn" data-tab="tab-pages">
+            <span>🗺️ Site Pages</span>
+            <span class="tab-badge" id="tabBadgePages">3</span>
+          </button>
+        </div>
+
+        <!-- Tab Search & Filter Bar -->
+        <div class="dash-filter-bar">
+          <div class="dash-search-wrapper">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              id="dashSearchInput"
+              class="dash-search-input"
+              placeholder="Filter issues, URLs, error codes, tags..."
+            />
+          </div>
+          <div class="dash-filter-group">
+            <label>Filter:</label>
+            <button class="filter-pill active" data-filter="all">All</button>
+            <button class="filter-pill pill-critical" data-filter="critical">
+              Critical
+            </button>
+            <button class="filter-pill pill-warning" data-filter="warning">
+              Warnings
+            </button>
+            <button class="filter-pill pill-ok" data-filter="ok">Passed</button>
+          </div>
+        </div>
+
+        <!-- Modal Body Content Panes -->
+        <div class="dash-tab-content">
+          <!-- TAB 1: ACTIONABLE FIXES -->
+          <div class="dash-pane active" id="pane-tab-fixes">
+            <div class="pane-header-actions">
+              <h3>Prioritized Fixes & Technical Recommendations</h3>
+              <button class="btn-sm btn-secondary" id="copyAllFixesBtn">
+                Copy All Recommendations
+              </button>
+            </div>
+            <div class="fixes-list" id="dashFixesList">
+              <!-- Rendered by dashboard.js -->
+            </div>
+          </div>
+
+          <!-- TAB 2: IMAGES -->
+          <div class="dash-pane" id="pane-tab-images">
+            <div class="pane-header-actions">
+              <h3>Image Asset Diagnostics</h3>
+              <span class="text-muted" id="imageSummaryText"
+                >Auditing natural dimensions, HTTP status, and WCAG alt
+                tags</span
+              >
+            </div>
+            <div class="table-responsive">
+              <table class="dash-table" id="imagesTable">
+                <thead>
+                  <tr>
+                    <th>Preview</th>
+                    <th>Image URL</th>
+                    <th>Rendered vs Natural</th>
+                    <th>Alt Text</th>
+                    <th>Status</th>
+                    <th>Issues & Fix</th>
+                  </tr>
+                </thead>
+                <tbody id="imagesTableBody">
+                  <!-- Rendered by dashboard.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- TAB 3: LINKS -->
+          <div class="dash-pane" id="pane-tab-links">
+            <div class="pane-header-actions">
+              <h3>Hyperlink & Redirect Analysis</h3>
+              <span class="text-muted"
+                >Target URLs, Anchor text, 301/302 Redirect Hops & Dead
+                Links</span
+              >
+            </div>
+            <div class="table-responsive">
+              <table class="dash-table" id="linksTable">
+                <thead>
+                  <tr>
+                    <th>Anchor Text</th>
+                    <th>Target URL</th>
+                    <th>Type</th>
+                    <th>HTTP Status</th>
+                    <th>Redirect Path</th>
+                    <th>Resolution / Fix</th>
+                  </tr>
+                </thead>
+                <tbody id="linksTableBody">
+                  <!-- Rendered by dashboard.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- TAB 4: NETWORK & APIS -->
+          <div class="dash-pane" id="pane-tab-network">
+            <div class="pane-header-actions">
+              <h3>Dynamic Network & API Traffic</h3>
+              <span class="text-muted"
+                >Fetch, XHR, REST endpoints, response times and payload
+                details</span
+              >
+            </div>
+            <div class="table-responsive">
+              <table class="dash-table" id="networkTable">
+                <thead>
+                  <tr>
+                    <th>Method</th>
+                    <th>Endpoint URL</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Duration</th>
+                    <th>Diagnostics</th>
+                  </tr>
+                </thead>
+                <tbody id="networkTableBody">
+                  <!-- Rendered by dashboard.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- TAB 5: 404 & PAGE STATUS -->
+          <div class="dash-pane" id="pane-tab-status">
+            <div class="pane-header-actions">
+              <h3>404 Finder & Server Status</h3>
+              <span class="text-muted"
+                >Response codes, permanent/temporary redirects, latency, and
+                content lengths</span
+              >
+            </div>
+            <div class="table-responsive">
+              <table class="dash-table" id="statusTable">
+                <thead>
+                  <tr>
+                    <th>Page URL</th>
+                    <th>Final URL</th>
+                    <th>Status Code</th>
+                    <th>Latency</th>
+                    <th>MIME Type</th>
+                    <th>Verdict</th>
+                  </tr>
+                </thead>
+                <tbody id="statusTableBody">
+                  <!-- Rendered by dashboard.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- TAB 6: SEO & SOCIAL -->
+          <div class="dash-pane" id="pane-tab-seo">
+            <div class="seo-inspector-container" id="seoInspectorContainer">
+              <!-- Rendered by dashboard.js: Score, SERP preview, OpenGraph preview, Headings tree, Schema JSON-LD -->
+            </div>
+          </div>
+
+          <!-- TAB 7: SPEED & PERFORMANCE -->
+          <div class="dash-pane" id="pane-tab-speed">
+            <div class="speed-inspector-container" id="speedInspectorContainer">
+              <!-- Rendered by dashboard.js: Web Vitals gauges, Resource Weight breakdown, Bottlenecks -->
+            </div>
+          </div>
+
+          <!-- TAB 8: CONSOLE LOGS -->
+          <div class="dash-pane" id="pane-tab-console">
+            <div class="pane-header-actions">
+              <h3>JavaScript Engine & Console Log Trace</h3>
+              <span class="text-muted"
+                >Uncaught runtime exceptions, syntax errors, and missing
+                polyfills</span
+              >
+            </div>
+            <div class="console-entries-list" id="consoleEntriesList">
+              <!-- Rendered by dashboard.js -->
+            </div>
+          </div>
+
+          <!-- TAB 9: SITE PAGES TREE -->
+          <div class="dash-pane" id="pane-tab-pages">
+            <div class="pane-header-actions">
+              <h3>Sitemap Crawl Tree & Discovered Pages</h3>
+              <span class="text-muted"
+                >Crawled URLs, depth, status, and issue counts per page</span
+              >
+            </div>
+            <div class="crawled-pages-list" id="crawledPagesList">
+              <!-- Rendered by dashboard.js -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification System -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Application Logic Scripts -->
+    <script src="js/presets.js"></script>
+    <script src="js/exportHelper.js"></script>
+    <script src="js/auditEngine.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
