@@ -4,7 +4,6 @@ A full-stack diagnostic CLI tool powered by **Playwright (Chromium)**, **Axios**
 
 > 📖 **Looking for in-depth technical architecture and non-technical business guides?** See the full [Product & Technical Documentation Manual](DOCUMENTATION.md).
 
-Works out-of-the-box for any domain (e.g. `https://betabeautifulhomes.asianpaints.com/`, `https://dynagroseed.com/`, `https://provenseed.ca/`, `https://nutrienagsolutions.ca/`, etc.).
 
 ---
 
