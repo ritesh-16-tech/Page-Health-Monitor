@@ -117,7 +117,7 @@
 
             <div class="form-group checkbox-row">
               <label class="custom-checkbox-container">
-                <input type="checkbox" id="crawlSitemap" checked />
+                <input type="checkbox" id="crawlSitemap" />
                 <span class="checkmark"></span>
                 <span class="checkbox-label"
                   >Crawl the entire sitemap (auto-discover sitemap.xml /
@@ -126,7 +126,7 @@
               </label>
             </div>
 
-            <div class="crawl-options-section" id="crawlOptionsSection">
+            <div class="crawl-options-section" id="crawlOptionsSection" style="display:none;">
               <div class="section-sublabel">PAGES TO CRAWL</div>
 
               <div class="radio-options-row">
@@ -134,12 +134,25 @@
                   <input
                     type="radio"
                     name="crawlLimitType"
-                    value="limit"
+                    value="all"
                     checked
+                    id="allPagesRadio"
+                  />
+                  <span class="radio-mark"></span>
+                  <span class="radio-label">All discovered pages (No limit)</span>
+                </label>
+              </div>
+
+              <div class="radio-options-row">
+                <label class="custom-radio-container">
+                  <input
+                    type="radio"
+                    name="crawlLimitType"
+                    value="limit"
                     id="limitCountRadio"
                   />
                   <span class="radio-mark"></span>
-                  <span class="radio-label">Limit to a count</span>
+                  <span class="radio-label">Limit to a count:</span>
                 </label>
 
                 <div class="page-count-input-wrapper">
@@ -149,22 +162,9 @@
                     class="count-input"
                     value="10"
                     min="1"
-                    max="500"
+                    max="10000"
                   />
                 </div>
-              </div>
-
-              <div class="radio-options-row">
-                <label class="custom-radio-container">
-                  <input
-                    type="radio"
-                    name="crawlLimitType"
-                    value="all"
-                    id="allPagesRadio"
-                  />
-                  <span class="radio-mark"></span>
-                  <span class="radio-label">All discovered pages</span>
-                </label>
               </div>
             </div>
           </div>
@@ -193,27 +193,45 @@
                 </button>
               </div>
             </div>
-            <div class="radio-options-row" style="margin-top: 12px;">
-              <label class="custom-radio-container">
-                <input
-                  type="radio"
-                  name="sitemapLimitType"
-                  value="limit"
-                  checked
-                  id="sitemapLimitCountRadio"
-                />
-                <span class="radio-mark"></span>
-                <span class="radio-label">Max pages to audit from sitemap:</span>
-              </label>
-              <div class="page-count-input-wrapper">
-                <input
-                  type="number"
-                  id="sitemapPageLimit"
-                  class="count-input"
-                  value="20"
-                  min="1"
-                  max="500"
-                />
+
+            <div class="crawl-options-section" style="margin-top: 14px; border-top: none; padding-top: 0;">
+              <div class="section-sublabel">PAGES TO AUDIT FROM SITEMAP</div>
+
+              <div class="radio-options-row">
+                <label class="custom-radio-container">
+                  <input
+                    type="radio"
+                    name="sitemapLimitType"
+                    value="all"
+                    checked
+                    id="sitemapAllPagesRadio"
+                  />
+                  <span class="radio-mark"></span>
+                  <span class="radio-label">Audit all pages in sitemap (No limit / Complete audit)</span>
+                </label>
+              </div>
+
+              <div class="radio-options-row">
+                <label class="custom-radio-container">
+                  <input
+                    type="radio"
+                    name="sitemapLimitType"
+                    value="limit"
+                    id="sitemapLimitCountRadio"
+                  />
+                  <span class="radio-mark"></span>
+                  <span class="radio-label">Limit page count:</span>
+                </label>
+                <div class="page-count-input-wrapper">
+                  <input
+                    type="number"
+                    id="sitemapPageLimit"
+                    class="count-input"
+                    value="20"
+                    min="1"
+                    max="10000"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -254,7 +272,7 @@
                   type="text"
                   id="manualUrlInput"
                   class="text-input"
-                  placeholder="Enter a URL to add (e.g. https://example.com/products)"
+                  placeholder="Enter or paste URLs (e.g. https://example.com/about, https://example.com/contact)"
                   autocomplete="off"
                   spellcheck="false"
                 />
@@ -270,7 +288,7 @@
                 <button type="button" class="btn-clear-queue" id="clearManualQueueBtn">Clear All</button>
               </div>
               <div class="url-chips-container" id="manualUrlChips">
-                <div class="empty-queue-hint">No URLs added yet. Enter a URL above and click "+ Add URL".</div>
+                <div class="empty-queue-hint">No URLs added yet. Enter a URL above and click "+ Add URL" to build your audit queue.</div>
               </div>
             </div>
           </div>

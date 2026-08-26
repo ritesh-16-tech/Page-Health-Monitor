@@ -22,11 +22,12 @@ window.PageSentinelAuditEngine = {
       urls: providedUrls, 
       sourceMode = 'url',
       sitemapUrl,
-      sitemapPageLimit = 20,
-      crawlSitemap, 
-      limitType, 
-      pageCountLimit, 
-      focus, 
+      sitemapLimitType = 'all',
+      sitemapPageLimit = null,
+      crawlSitemap = false, 
+      limitType = 'all', 
+      pageCountLimit = 10, 
+      focus = 'all', 
       timeout = 30000, 
       corsProxy = 'auto' 
     } = options;
@@ -49,41 +50,49 @@ window.PageSentinelAuditEngine = {
       const targetSitemap = sitemapUrl || url;
       log(`Fetching and parsing sitemap XML: ${targetSitemap}`, 'info');
       try {
-        const response = await this.fetchWithCorsFallback(targetSitemap, corsProxy);
-        const discovered = this.parseSitemapXml(response.html || response);
+        const discovered = await this.parseAndExtractSitemapUrls(targetSitemap, corsProxy, log);
         if (discovered.length > 0) {
-          urlsToAudit = discovered.slice(0, sitemapPageLimit);
-          log(`Discovered ${discovered.length} URLs in sitemap. Queuing ${urlsToAudit.length} pages for audit.`, 'success');
+          if (sitemapLimitType === 'all' || !sitemapPageLimit) {
+            urlsToAudit = discovered;
+            log(`Discovered ${discovered.length} URLs in sitemap. Queuing all ${urlsToAudit.length} pages for complete audit.`, 'success');
+          } else {
+            urlsToAudit = discovered.slice(0, sitemapPageLimit);
+            log(`Discovered ${discovered.length} URLs in sitemap. Limiting to first ${urlsToAudit.length} pages.`, 'info');
+          }
         } else {
           urlsToAudit = [targetSitemap];
-          log(`No <loc> tags found in XML. Auditing primary target.`, 'warning');
+          log(`No <loc> tags found in XML. Auditing primary target URL.`, 'warning');
         }
       } catch (err) {
-        log(`Sitemap fetch failed: ${err.message}. Generating target crawl queue...`, 'warning');
+        log(`Sitemap fetch failed: ${err.message}. Auditing primary target URL.`, 'warning');
         urlsToAudit = [targetSitemap];
       }
     } else {
-      // Single URL mode (with auto-crawl)
+      // Single URL mode
       urlsToAudit = [url];
 
       if (crawlSitemap) {
-        log(`Discovering sitemap.xml / robots.txt...`, 'info');
-        await this.delay(300);
-        log(`Checking ${new URL(url).origin}/robots.txt`, 'info');
-        await this.delay(200);
-        log(`Discovered sitemap reference. Generating target crawl URLs...`, 'info');
-        
-        const base = new URL(url);
-        const count = limitType === 'limit' ? Math.min(pageCountLimit, 10) : 5;
-        for (let i = 2; i <= count; i++) {
-          urlsToAudit.push(new URL(`/page-${i}`, base.origin).href);
+        log(`Auto-crawl enabled. Discovering sitemap / links for ${url}...`, 'info');
+        try {
+          const baseOrigin = new URL(url).origin;
+          const discovered = await this.parseAndExtractSitemapUrls(`${baseOrigin}/sitemap.xml`, corsProxy, log);
+          if (discovered.length > 0) {
+            const count = limitType === 'limit' && pageCountLimit ? Math.min(pageCountLimit, discovered.length) : discovered.length;
+            urlsToAudit = discovered.slice(0, count);
+            log(`Discovered ${discovered.length} pages from sitemap. Queued ${urlsToAudit.length} pages for audit.`, 'success');
+          } else {
+            log(`No sitemap entries found. Proceeding with single URL audit.`, 'info');
+          }
+        } catch (e) {
+          log(`Sitemap discovery skipped (${e.message}). Auditing single URL: ${url}`, 'info');
         }
-        log(`Discovered ${urlsToAudit.length} URL(s) for crawling queue.`, 'success');
+      } else {
+        log(`Auditing single target webpage: ${url}`, 'info');
       }
     }
 
     try {
-      log(`Beginning inspection on ${urlsToAudit.length} page(s)...`, 'info');
+      log(`Beginning diagnostic inspection on ${urlsToAudit.length} page(s) one by one...`, 'info');
 
       const pageResults = [];
       const allFixes = [];
@@ -92,11 +101,10 @@ window.PageSentinelAuditEngine = {
       const allNetwork = [];
       const allPageStatus = [];
       const allConsole = [];
-      let totalRequests = 0;
 
       for (let i = 0; i < urlsToAudit.length; i++) {
         if (this.isCancelled) {
-          log(`Audit cancelled by user.`, 'warning');
+          log(`Audit cancelled by user at URL ${i + 1}/${urlsToAudit.length}.`, 'warning');
           break;
         }
 
@@ -114,13 +122,13 @@ window.PageSentinelAuditEngine = {
         if (pageAudit.pageStatus) allPageStatus.push(...pageAudit.pageStatus);
         if (pageAudit.consoleLogs) allConsole.push(...pageAudit.consoleLogs);
 
-        await this.delay(300);
+        await this.delay(150);
       }
 
       log(`Audited ${pageResults.length} page(s). Synthesizing diagnostic metrics...`, 'info');
-      await this.delay(300);
-      log(`Writing reports...`, 'info');
       await this.delay(200);
+      log(`Writing reports...`, 'info');
+      await this.delay(100);
       log(`Reports generated. Total issues found: ${allFixes.length}`, allFixes.length > 0 ? 'warning' : 'success');
       log(`Done. Audit completed in ${((performance.now() - startTime) / 1000).toFixed(2)}s.`, 'success');
 
@@ -129,7 +137,7 @@ window.PageSentinelAuditEngine = {
       const criticalCount = allFixes.filter(f => f.severity === 'Critical').length;
       const warningCount = allFixes.filter(f => f.severity === 'Warning').length;
 
-      const healthScore = Math.max(10, Math.min(100, 100 - (criticalCount * 15 + warningCount * 5)));
+      const healthScore = Math.max(10, Math.min(100, Math.round(100 - (criticalCount * 10 + warningCount * 3) / Math.max(1, pageResults.length))));
       let grade = 'A';
       if (healthScore >= 95) grade = 'A+';
       else if (healthScore >= 85) grade = 'A';
@@ -139,7 +147,7 @@ window.PageSentinelAuditEngine = {
       else grade = 'F';
 
       return {
-        targetUrl: url,
+        targetUrl: url || (providedUrls ? `${providedUrls.length} Queued URLs` : sitemapUrl),
         focus: focus,
         summary: {
           totalIssues: allFixes.length,
@@ -176,13 +184,14 @@ window.PageSentinelAuditEngine = {
         links: allLinks,
         networkTraffic: allNetwork,
         pageStatus: allPageStatus,
-        seoMetadata: primaryPage.seoMetadata || this.generateDefaultSeo(url),
-        pageSpeed: primaryPage.pageSpeed || this.generateDefaultSpeed(url),
+        seoMetadata: primaryPage.seoMetadata || this.generateDefaultSeo(url || 'https://example.com'),
+        pageSpeed: primaryPage.pageSpeed || this.generateDefaultSpeed(url || 'https://example.com'),
         consoleLogs: allConsole,
-        crawledPages: urlsToAudit.map((u, idx) => ({
-          url: u,
-          status: 200,
-          issuesCount: allFixes.filter(f => f.targetUrl && f.targetUrl.includes(u)).length
+        crawledPages: pageResults.map((p, idx) => ({
+          url: p.pageUrl,
+          status: p.pageStatus?.[0]?.httpStatus || 200,
+          responseTimeMs: p.pageStatus?.[0]?.responseTimeMs || 0,
+          issuesCount: (p.actionableFixes || []).length
         }))
       };
 
@@ -451,17 +460,38 @@ window.PageSentinelAuditEngine = {
   },
 
   /**
-   * Fetches URL with multi-proxy fallback
+   * Fetches URL with local server proxy and multi-proxy fallback
    */
   async fetchWithCorsFallback(url, preferredProxy = 'auto') {
-    // 1. Try Direct Fetch if on same host or localhost
+    // 1. If running on local server (http/https), try the local proxy endpoint /api/proxy?url=
+    if (window.location && window.location.protocol.startsWith('http')) {
+      try {
+        const localProxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
+        const res = await fetch(localProxyUrl);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && typeof data.html === 'string') {
+            return {
+              html: data.html,
+              status: data.status || 200,
+              statusText: data.statusText || 'OK',
+              contentType: data.contentType || 'text/html'
+            };
+          }
+        }
+      } catch (e) {
+        // Fall through to public proxies
+      }
+    }
+
+    // 2. Try Direct Fetch if on same host or localhost
     if (preferredProxy === 'direct' || url.includes('localhost') || url.includes('127.0.0.1')) {
       const res = await fetch(url, { mode: 'cors' });
       const text = await res.text();
       return { html: text, status: res.status, statusText: res.statusText, contentType: res.headers.get('content-type') };
     }
 
-    // 2. Try CorsProxy.io
+    // 3. Try CorsProxy.io
     if (preferredProxy === 'corsproxy' || preferredProxy === 'auto') {
       try {
         const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
@@ -475,7 +505,7 @@ window.PageSentinelAuditEngine = {
       }
     }
 
-    // 3. Try AllOrigins.win
+    // 4. Try AllOrigins.win
     try {
       const allOriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
       const res = await fetch(allOriginsUrl);
@@ -487,7 +517,106 @@ window.PageSentinelAuditEngine = {
       // Fallthrough
     }
 
-    throw new Error('All CORS proxies unavailable for live external domain.');
+    throw new Error('Unable to fetch live external URL (All CORS proxies unavailable).');
+  },
+
+  /**
+   * Recursively fetches and extracts URLs from sitemaps and nested sitemap indexes
+   */
+  async parseAndExtractSitemapUrls(sitemapUrl, corsProxy, log) {
+    const discoveredUrls = new Set();
+    const sitemapsToFetch = [sitemapUrl];
+    const processedSitemaps = new Set();
+
+    while (sitemapsToFetch.length > 0 && processedSitemaps.size < 20) {
+      const currentSitemap = sitemapsToFetch.shift();
+      if (!currentSitemap || processedSitemaps.has(currentSitemap)) continue;
+      processedSitemaps.add(currentSitemap);
+
+      if (processedSitemaps.size > 1 && log) {
+        log(`Parsing nested sub-sitemap: ${currentSitemap}`, 'info');
+      }
+
+      try {
+        const response = await this.fetchWithCorsFallback(currentSitemap, corsProxy);
+        const content = response.html || response;
+        const { pageUrls, subSitemaps } = this.extractSitemapEntries(content);
+
+        pageUrls.forEach(u => discoveredUrls.add(u));
+        subSitemaps.forEach(s => {
+          if (!processedSitemaps.has(s) && !sitemapsToFetch.includes(s)) {
+            sitemapsToFetch.push(s);
+          }
+        });
+      } catch (e) {
+        if (log) log(`Failed to fetch sitemap ${currentSitemap}: ${e.message}`, 'warning');
+      }
+    }
+
+    return Array.from(discoveredUrls);
+  },
+
+  /**
+   * Extracts page URLs and nested sub-sitemaps from XML text
+   */
+  extractSitemapEntries(xmlString) {
+    const pageUrls = [];
+    const subSitemaps = [];
+
+    try {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
+
+      // Check for sitemapindex
+      const sitemapNodes = xmlDoc.getElementsByTagName('sitemap');
+      for (let i = 0; i < sitemapNodes.length; i++) {
+        const loc = sitemapNodes[i].getElementsByTagName('loc')[0];
+        const text = (loc?.textContent || '').trim();
+        if (text && (text.startsWith('http://') || text.startsWith('https://'))) {
+          subSitemaps.push(text);
+        }
+      }
+
+      // Check for urlset
+      const urlNodes = xmlDoc.getElementsByTagName('url');
+      for (let i = 0; i < urlNodes.length; i++) {
+        const loc = urlNodes[i].getElementsByTagName('loc')[0];
+        const text = (loc?.textContent || '').trim();
+        if (text && (text.startsWith('http://') || text.startsWith('https://'))) {
+          pageUrls.push(text);
+        }
+      }
+
+      // Fallback if no structured tags
+      if (pageUrls.length === 0 && subSitemaps.length === 0) {
+        const locElements = xmlDoc.getElementsByTagName('loc');
+        for (let i = 0; i < locElements.length; i++) {
+          const text = (locElements[i].textContent || '').trim();
+          if (text && (text.startsWith('http://') || text.startsWith('https://'))) {
+            if (text.endsWith('.xml') || text.includes('sitemap')) {
+              subSitemaps.push(text);
+            } else {
+              pageUrls.push(text);
+            }
+          }
+        }
+      }
+    } catch {
+      // Regex fallback
+      const locMatches = xmlString.match(/<loc>(https?:\/\/[^<]+)<\/loc>/gi) || [];
+      locMatches.forEach(m => {
+        const clean = m.replace(/<\/?loc>/gi, '').trim();
+        if (clean) {
+          if (clean.endsWith('.xml') || clean.includes('sitemap')) {
+            subSitemaps.push(clean);
+          } else {
+            pageUrls.push(clean);
+          }
+        }
+      });
+    }
+
+    return { pageUrls, subSitemaps };
   },
 
   /**
@@ -518,26 +647,8 @@ window.PageSentinelAuditEngine = {
   },
 
   parseSitemapXml(xmlString) {
-    const urls = [];
-    try {
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
-      const locElements = xmlDoc.getElementsByTagName('loc');
-      for (let i = 0; i < locElements.length; i++) {
-        const text = (locElements[i].textContent || '').trim();
-        if (text && (text.startsWith('http://') || text.startsWith('https://'))) {
-          urls.push(text);
-        }
-      }
-    } catch {
-      // Fallback regex parsing
-      const matches = xmlString.match(/<loc>(https?:\/\/[^<]+)<\/loc>/gi) || [];
-      matches.forEach(m => {
-        const clean = m.replace(/<\/?loc>/gi, '').trim();
-        if (clean) urls.push(clean);
-      });
-    }
-    return urls;
+    const { pageUrls, subSitemaps } = this.extractSitemapEntries(xmlString);
+    return [...pageUrls, ...subSitemaps];
   },
 
   resolveUrl(href, base) {

@@ -216,28 +216,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 4. Manual One-by-One URL List Builder
   function addManualUrl() {
-    let urlVal = manualUrlInput.value.trim();
-    if (!urlVal) return;
+    const rawInput = manualUrlInput.value.trim();
+    if (!rawInput) return;
 
-    if (!urlVal.startsWith('http://') && !urlVal.startsWith('https://')) {
-      urlVal = 'https://' + urlVal;
+    // Split by newline, comma, semicolon to support pasting single or multiple URLs
+    const candidateUrls = rawInput.split(/[\r\n,;]+/).map(u => u.trim()).filter(Boolean);
+    let addedCount = 0;
+
+    for (let urlVal of candidateUrls) {
+      if (!urlVal.startsWith('http://') && !urlVal.startsWith('https://')) {
+        urlVal = 'https://' + urlVal;
+      }
+
+      if (isValidUrl(urlVal) && !manualQueuedUrls.includes(urlVal)) {
+        manualQueuedUrls.push(urlVal);
+        addedCount++;
+      }
     }
 
-    if (!isValidUrl(urlVal)) {
-      showToast('Please enter a valid URL.', 'error');
-      return;
+    if (addedCount > 0) {
+      manualUrlInput.value = '';
+      manualUrlInput.focus();
+      renderManualUrlChips();
+      showToast(addedCount === 1 ? `Added: ${candidateUrls[0]}` : `Added ${addedCount} URLs to queue.`);
+    } else {
+      showToast('Please enter valid, unique URL(s).', 'warning');
     }
-
-    if (manualQueuedUrls.includes(urlVal)) {
-      showToast('URL is already in the queue.', 'warning');
-      return;
-    }
-
-    manualQueuedUrls.push(urlVal);
-    manualUrlInput.value = '';
-    manualUrlInput.focus();
-    renderManualUrlChips();
-    showToast(`Added: ${urlVal}`);
   }
 
   addSingleUrlBtn.addEventListener('click', addManualUrl);
@@ -435,7 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       auditOptions.url = targetUrl;
       auditOptions.crawlSitemap = crawlSitemapCheckbox.checked;
-      auditOptions.limitType = document.querySelector('input[name="crawlLimitType"]:checked')?.value || 'limit';
+      auditOptions.limitType = document.querySelector('input[name="crawlLimitType"]:checked')?.value || 'all';
       auditOptions.pageCountLimit = parseInt(pageCountLimitInput.value, 10) || 10;
     } else if (sourceMode === 'sitemap') {
       let sitemapVal = sitemapUrlInput.value.trim();
@@ -450,14 +454,21 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       auditOptions.sitemapUrl = sitemapVal;
       auditOptions.url = sitemapVal;
-      auditOptions.sitemapPageLimit = parseInt(sitemapPageLimit.value, 10) || 20;
+
+      const sitemapLimitType = document.querySelector('input[name="sitemapLimitType"]:checked')?.value || 'all';
+      auditOptions.sitemapLimitType = sitemapLimitType;
+      if (sitemapLimitType === 'all') {
+        auditOptions.sitemapPageLimit = null; // Complete / All Pages
+      } else {
+        auditOptions.sitemapPageLimit = parseInt(sitemapPageLimit.value, 10) || 20;
+      }
     } else if (sourceMode === 'file') {
       if (loadedFileUrls.length === 0) {
         showToast('Please upload a file containing URLs first.', 'error');
         bulkFileInput.click();
         return;
       }
-      auditOptions.urls = loadedFileUrls;
+      auditOptions.urls = [...loadedFileUrls];
       auditOptions.url = loadedFileUrls[0];
     } else if (sourceMode === 'manual') {
       if (manualQueuedUrls.length === 0) {
@@ -465,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
         manualUrlInput.focus();
         return;
       }
-      auditOptions.urls = manualQueuedUrls;
+      auditOptions.urls = [...manualQueuedUrls];
       auditOptions.url = manualQueuedUrls[0];
     }
 
