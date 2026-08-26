@@ -84,7 +84,7 @@
               <select id="auditSourceMode" class="source-select">
                 <option value="url">🌐 Single Webpage URL</option>
                 <option value="sitemap">🗺️ Sitemap XML URL</option>
-                <option value="file">📁 Bulk File Upload (.txt, .csv, .xlsx, .json)</option>
+                <option value="file">📁 Bulk File Upload (.xml, .txt, .csv, .xlsx, .json)</option>
                 <option value="manual">✍️ Add URLs One by One</option>
               </select>
             </div>
@@ -236,10 +236,10 @@
             </div>
           </div>
 
-          <!-- MODE 3: Bulk File Upload (.txt, .csv, .xlsx, .json) -->
+          <!-- MODE 3: Bulk File Upload (.xml, .txt, .csv, .xlsx, .json) -->
           <div class="source-mode-panel hidden" id="panelModeFile">
             <div class="file-drop-zone" id="fileDropZone">
-              <input type="file" id="bulkFileInput" accept=".txt,.csv,.xlsx,.xls,.json" style="display:none;" />
+              <input type="file" id="bulkFileInput" accept=".xml,.txt,.csv,.xlsx,.xls,.json" style="display:none;" />
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="17 8 12 3 7 8"/>
@@ -249,7 +249,7 @@
                 <strong>Click to upload</strong> or drag & drop URL list file
               </div>
               <div class="drop-zone-hint">
-                Supports <code>.txt</code>, <code>.csv</code>, <code>.xlsx</code>, <code>.xls</code>, and <code>.json</code>
+                Supports <code>.xml</code> (sitemap), <code>.txt</code>, <code>.csv</code>, <code>.xlsx</code>, <code>.xls</code>, and <code>.json</code>
               </div>
             </div>
 

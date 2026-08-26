@@ -156,7 +156,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let urls = [];
 
     try {
-      if (ext === '.txt') {
+      if (ext === '.xml') {
+        const text = await file.text();
+        urls = window.PageSentinelAuditEngine.parseSitemapXml(text);
+      } else if (ext === '.txt') {
         const text = await file.text();
         urls = extractUrlsFromText(text);
       } else if (ext === '.csv') {
@@ -174,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const workbook = XLSX.read(data, { type: 'array' });
         urls = extractUrlsFromWorkbook(workbook);
       } else {
-        showToast('Unsupported format. Please upload .txt, .csv, .xlsx, or .json', 'error');
+        showToast('Unsupported format. Please upload .xml, .txt, .csv, .xlsx, or .json', 'error');
         return;
       }
 
