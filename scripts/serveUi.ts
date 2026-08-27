@@ -60,12 +60,16 @@ const server = http.createServer(async (req, res) => {
       const response = await axios.get(targetUrl, {
         timeout: 30000,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9'
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         },
         responseType: 'text',
-        validateStatus: () => true // Accept any HTTP status
+        validateStatus: () => true, // Accept any HTTP status
+        httpsAgent: new (await import('https')).Agent({ rejectUnauthorized: false }) // Allow self-signed certs on staging
       });
 
       res.writeHead(200, {

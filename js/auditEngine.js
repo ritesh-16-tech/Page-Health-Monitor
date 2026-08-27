@@ -463,28 +463,23 @@ window.PageSentinelAuditEngine = {
    * Fetches URL with local server proxy and multi-proxy fallback
    */
   async fetchWithCorsFallback(url, preferredProxy = 'auto') {
-    // 1. If running on local Node dev server, use the local proxy endpoint
-    const isLocalServer = typeof window !== 'undefined' && 
-      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.port === '8933');
-    
-    if (isLocalServer) {
-      try {
-        const localProxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
-        const res = await fetch(localProxyUrl);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && typeof data.html === 'string') {
-            return {
-              html: data.html,
-              status: data.status || 200,
-              statusText: data.statusText || 'OK',
-              contentType: data.contentType || 'text/html'
-            };
-          }
-        }
-      } catch (e) {
-        // Fall through to public proxies
+    // 1. Always try the local Node proxy first — works on localhost regardless of port
+    // The fetch will throw/fail fast if the server isn't running (no penalty)
+    try {
+      const localProxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
+      const probeRes = await fetch(localProxyUrl, { signal: AbortSignal.timeout(5000) });
+      const data = await probeRes.json();
+      // Accept response if it contains html content (even if status was non-200 upstream)
+      if (data && typeof data.html === 'string' && data.html.length > 0) {
+        return {
+          html: data.html,
+          status: data.status || 200,
+          statusText: data.statusText || 'OK',
+          contentType: data.contentType || 'text/html'
+        };
       }
+    } catch (e) {
+      // Local server not running or returned non-JSON — fall through to public proxies
     }
 
     // 2. Direct fetch if direct mode or same host
