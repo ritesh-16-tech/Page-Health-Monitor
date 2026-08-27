@@ -483,7 +483,7 @@ window.PageSentinelAuditEngine = {
           }
         }
       } catch (e) {
-        // Fall through
+        // Fall through to public proxies
       }
     }
 
@@ -498,35 +498,87 @@ window.PageSentinelAuditEngine = {
       }
     }
 
-    // 3. Chain of public CORS proxies for static hosts (GitHub Pages)
+    // 3. Try direct CORS fetch first (works if the target server allows it)
+    if (preferredProxy === 'auto') {
+      try {
+        const res = await fetch(url, { mode: 'cors', signal: AbortSignal.timeout(8000) });
+        if (res.ok) {
+          const text = await res.text();
+          return { html: text, status: res.status, statusText: res.statusText, contentType: res.headers.get('content-type') || 'text/html' };
+        }
+      } catch (e) {
+        // Target server doesn't allow CORS — fall through to proxy chain
+      }
+    }
+
+    // 4. Chain of public CORS proxies for static hosts (GitHub Pages)
     const publicProxies = [
+      // corsproxy.io — reliable, no rate limits for reasonable usage
       async () => {
-        const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+        const encoded = encodeURIComponent(url);
+        const res = await fetch(`https://corsproxy.io/?${encoded}`, { signal: AbortSignal.timeout(12000) });
+        if (res.ok) {
+          const text = await res.text();
+          if (text && text.length > 0) {
+            return { html: text, status: res.status, statusText: 'OK', contentType: res.headers.get('content-type') || 'text/html' };
+          }
+        }
+        throw new Error('corsproxy.io failed');
+      },
+      // allorigins /raw endpoint — more stable than /get
+      async () => {
+        const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(12000) });
+        if (res.ok) {
+          const text = await res.text();
+          if (text && text.length > 0) {
+            return { html: text, status: 200, statusText: 'OK', contentType: res.headers.get('content-type') || 'text/html' };
+          }
+        }
+        throw new Error('AllOrigins /raw failed');
+      },
+      // allorigins /get endpoint — JSON wrapper
+      async () => {
+        const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(12000) });
         if (res.ok) {
           const data = await res.json();
           if (data && data.contents) {
             return { html: data.contents, status: data.status?.http_code || 200, statusText: 'OK', contentType: 'text/html' };
           }
         }
-        throw new Error('AllOrigins failed');
+        throw new Error('AllOrigins /get failed');
       },
+      // codetabs proxy
       async () => {
-        const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
+        const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(12000) });
         if (res.ok) {
           const text = await res.text();
-          if (text && !text.includes('Error 522') && !text.includes('Cloudflare')) {
+          if (text && !text.includes('Error 522') && !text.includes('Cloudflare') && text.length > 0) {
             return { html: text, status: res.status, statusText: 'OK', contentType: 'text/html' };
           }
         }
         throw new Error('CodeTabs failed');
       },
+      // thingproxy fallback
       async () => {
-        const res = await fetch(`https://thingproxy.freeboard.io/fetch/${url}`);
+        const res = await fetch(`https://thingproxy.freeboard.io/fetch/${url}`, { signal: AbortSignal.timeout(12000) });
         if (res.ok) {
           const text = await res.text();
-          return { html: text, status: res.status, statusText: 'OK', contentType: 'text/html' };
+          if (text && text.length > 0) {
+            return { html: text, status: res.status, statusText: 'OK', contentType: 'text/html' };
+          }
         }
         throw new Error('ThingProxy failed');
+      },
+      // jsonp.afeld.me CORS proxy
+      async () => {
+        const res = await fetch(`https://jsonp.afeld.me/?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(12000) });
+        if (res.ok) {
+          const text = await res.text();
+          if (text && text.length > 0) {
+            return { html: text, status: res.status, statusText: 'OK', contentType: 'text/html' };
+          }
+        }
+        throw new Error('jsonp.afeld.me failed');
       }
     ];
 
@@ -549,6 +601,8 @@ window.PageSentinelAuditEngine = {
     const sitemapsToFetch = [sitemapUrl];
     const processedSitemaps = new Set();
 
+    if (log) log(`Attempting to fetch sitemap via CORS proxy chain...`, 'info');
+
     while (sitemapsToFetch.length > 0 && processedSitemaps.size < 20) {
       const currentSitemap = sitemapsToFetch.shift();
       if (!currentSitemap || processedSitemaps.has(currentSitemap)) continue;
@@ -562,6 +616,10 @@ window.PageSentinelAuditEngine = {
         const response = await this.fetchWithCorsFallback(currentSitemap, corsProxy);
         const content = response.html || response;
         const { pageUrls, subSitemaps } = this.extractSitemapEntries(content);
+
+        if (processedSitemaps.size === 1 && log) {
+          log(`Fetched ${currentSitemap} in ${response.status || 200} (HTTP ${response.status || 200})`, 'success');
+        }
 
         pageUrls.forEach(u => discoveredUrls.add(u));
         subSitemaps.forEach(s => {
