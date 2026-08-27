@@ -720,3 +720,5 @@ window.PageSentinelAuditEngine = {
     };
   }
 };
+
+window.PageHealthMonitorAuditEngine = window.PageSentinelAuditEngine;

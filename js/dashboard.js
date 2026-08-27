@@ -48,12 +48,29 @@ window.PageSentinelDashboard = {
       closeBtn.addEventListener('click', () => this.close());
     }
 
-    // Modal Export Excel
-    const exportBtn = document.getElementById('dashDownloadExcel');
-    if (exportBtn) {
-      exportBtn.addEventListener('click', () => {
+    // Modal Download Report with Category Dropdown
+    const dashDownloadBtn = document.getElementById('dashDownloadReportBtn');
+    const dashSelect = document.getElementById('dashReportCategorySelect');
+    const homeSelect = document.getElementById('reportCategorySelect');
+
+    if (dashSelect && homeSelect) {
+      dashSelect.addEventListener('change', () => {
+        homeSelect.value = dashSelect.value;
+      });
+    }
+
+    if (dashDownloadBtn) {
+      dashDownloadBtn.addEventListener('click', () => {
         if (this.currentData) {
-          window.PageSentinelExport.downloadExcel(this.currentData);
+          const rawVal = dashSelect ? dashSelect.value : 'full-audit:xlsx';
+          const parts = rawVal.split(':');
+          const category = parts[0] || 'full-audit';
+          const format = parts[1] || 'xlsx';
+          window.PageSentinelExport.downloadSpecificReport(this.currentData, category, format);
+          const toast = document.querySelector('.toast-container');
+          if (window.showToast) {
+            window.showToast(`Downloading ${category} report (${format.toUpperCase()})...`);
+          }
         }
       });
     }
@@ -73,11 +90,10 @@ window.PageSentinelDashboard = {
     const searchInput = document.getElementById('dashSearchInput');
     if (searchInput) searchInput.value = '';
 
-    // Reset filter pills
-    document.querySelectorAll('.filter-pill').forEach(p => {
-      if (p.getAttribute('data-filter') === 'all') p.classList.add('active');
-      else p.classList.remove('active');
-    });
+    // Sync report dropdown with active focus
+    if (window.updateReportDropdowns) {
+      window.updateReportDropdowns(auditResult.focus || 'all');
+    }
 
     this.renderHeader();
     this.renderScorecards();
@@ -116,6 +132,20 @@ window.PageSentinelDashboard = {
       if (pane.id === `pane-${tabId}`) pane.classList.add('active');
       else pane.classList.remove('active');
     });
+
+    // Update report dropdown to match active tab
+    const tabMap = {
+      'tab-fixes': (this.currentData && this.currentData.focus) ? this.currentData.focus : 'all',
+      'tab-images': 'image',
+      'tab-links': 'link',
+      'tab-network': 'api',
+      'tab-status': 'status',
+      'tab-seo': 'seo',
+      'tab-speed': 'speed'
+    };
+    if (tabMap[tabId] && window.updateReportDropdowns) {
+      window.updateReportDropdowns(tabMap[tabId]);
+    }
   },
 
   renderHeader() {
@@ -607,3 +637,5 @@ window.PageSentinelDashboard = {
       .replace(/'/g, '&#039;');
   }
 };
+
+window.PageHealthMonitorDashboard = window.PageSentinelDashboard;

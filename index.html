@@ -381,8 +381,8 @@
 
           <div class="diagnostics-grid">
             <!-- Option 1: Images -->
-            <label class="diag-card active" data-focus="image">
-              <input type="radio" name="auditFocus" value="image" checked />
+            <label class="diag-card" data-focus="image">
+              <input type="radio" name="auditFocus" value="image" />
               <div class="diag-radio-indicator"></div>
               <div class="diag-content">
                 <div class="diag-title">
@@ -459,8 +459,8 @@
             </label>
 
             <!-- Option 7: All diagnostics -->
-            <label class="diag-card diag-card-all" data-focus="all">
-              <input type="radio" name="auditFocus" value="all" />
+            <label class="diag-card diag-card-all active" data-focus="all">
+              <input type="radio" name="auditFocus" value="all" checked />
               <div class="diag-radio-indicator"></div>
               <div class="diag-content">
                 <div class="diag-title">
@@ -576,6 +576,7 @@
           </div>
 
           <div class="summary-actions-row">
+            <!-- 1. Open Report Dashboard Button -->
             <button
               type="button"
               id="openDashboardBtn"
@@ -594,28 +595,63 @@
                 <rect x="14" y="14" width="7" height="7" />
                 <rect x="3" y="14" width="7" height="7" />
               </svg>
-              <span>Open Dashboard</span>
+              <span>Open Report Dashboard</span>
             </button>
-            <button type="button" id="downloadExcelBtn" class="btn-dark-glass">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path
-                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-                />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="16" y1="13" x2="8" y2="13" />
-                <line x1="16" y1="17" x2="8" y2="17" />
-                <polyline points="10 9 9 9 8 9" />
-              </svg>
-              <span>Download Excel</span>
-            </button>
-            <button type="button" id="downloadCsvBtn" class="btn-dark-glass">
+
+            <!-- 2. Dropdown inside with all reports (full-audit, 404-status, seo-metadata, page-speed, images, links, apis) -->
+            <div class="report-dropdown-container">
+              <select id="reportCategorySelect" class="report-category-select" title="Select report to download">
+                <optgroup label="📂 full-audit — All Diagnostics Unified">
+                  <option value="full-audit:xlsx" selected>full-audit / Excel Report (.xlsx)</option>
+                  <option value="full-audit:html">full-audit / Interactive HTML (.html)</option>
+                  <option value="full-audit:csv">full-audit / Summary CSV (.csv)</option>
+                  <option value="full-audit:json">full-audit / Complete JSON (.json)</option>
+                </optgroup>
+                <optgroup label="📂 404-status — Page Status & 404 Finder">
+                  <option value="404-status:xlsx">404-status / Excel Report (.xlsx)</option>
+                  <option value="404-status:html">404-status / HTML Dashboard (.html)</option>
+                  <option value="404-status:csv">404-status / Status CSV (.csv)</option>
+                  <option value="404-status:json">404-status / Status JSON (.json)</option>
+                </optgroup>
+                <optgroup label="📂 seo-metadata — SEO & Social Cards">
+                  <option value="seo-metadata:xlsx">seo-metadata / Excel Report (.xlsx)</option>
+                  <option value="seo-metadata:html">seo-metadata / HTML Report (.html)</option>
+                  <option value="seo-metadata:csv">seo-metadata / SEO CSV (.csv)</option>
+                  <option value="seo-metadata:json">seo-metadata / SEO JSON (.json)</option>
+                </optgroup>
+                <optgroup label="📂 page-speed — Web Vitals & Performance">
+                  <option value="page-speed:xlsx">page-speed / Excel Report (.xlsx)</option>
+                  <option value="page-speed:html">page-speed / HTML Report (.html)</option>
+                  <option value="page-speed:csv">page-speed / Speed CSV (.csv)</option>
+                  <option value="page-speed:json">page-speed / Speed JSON (.json)</option>
+                </optgroup>
+                <optgroup label="📂 images — Image Asset Quality">
+                  <option value="images:xlsx">images / Excel Report (.xlsx)</option>
+                  <option value="images:html">images / HTML Report (.html)</option>
+                  <option value="images:csv">images / Images CSV (.csv)</option>
+                  <option value="images:json">images / Images JSON (.json)</option>
+                </optgroup>
+                <optgroup label="📂 links — Hyperlinks & Redirections">
+                  <option value="links:xlsx">links / Excel Report (.xlsx)</option>
+                  <option value="links:html">links / HTML Report (.html)</option>
+                  <option value="links:csv">links / Links CSV (.csv)</option>
+                  <option value="links:json">links / Links JSON (.json)</option>
+                </optgroup>
+                <optgroup label="📂 apis — Dynamic APIs & Network Traffic">
+                  <option value="apis:xlsx">apis / Excel Report (.xlsx)</option>
+                  <option value="apis:html">apis / HTML Report (.html)</option>
+                  <option value="apis:csv">apis / APIs CSV (.csv)</option>
+                  <option value="apis:json">apis / APIs JSON (.json)</option>
+                </optgroup>
+              </select>
+            </div>
+
+            <!-- 3. Download Button -->
+            <button
+              type="button"
+              id="downloadSelectedReportBtn"
+              class="btn-dark-glass btn-download-action"
+            >
               <svg
                 width="16"
                 height="16"
@@ -628,78 +664,8 @@
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
-              <span>Download CSV</span>
+              <span>Download Report</span>
             </button>
-            <div class="dropdown-wrapper">
-              <button
-                type="button"
-                id="moreExportsBtn"
-                class="btn-dark-glass btn-icon-more"
-                title="More Export Options"
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <circle cx="12" cy="12" r="1" />
-                  <circle cx="19" cy="12" r="1" />
-                  <circle cx="5" cy="12" r="1" />
-                </svg>
-              </button>
-              <div
-                id="moreExportsMenu"
-                class="dropdown-menu dropdown-menu-right"
-              >
-                <button class="dropdown-item" id="downloadJsonBtn">
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <polyline points="16 18 22 12 16 6" />
-                    <polyline points="8 6 2 12 8 18" />
-                  </svg>
-                  <span>Download JSON</span>
-                </button>
-                <button class="dropdown-item" id="downloadHtmlBtn">
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
-                  </svg>
-                  <span>Download Self-Contained HTML</span>
-                </button>
-                <button class="dropdown-item" id="printReportBtn">
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <polyline points="6 9 6 2 18 2 18 9" />
-                    <path
-                      d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"
-                    />
-                    <rect x="6" y="14" width="12" height="8" />
-                  </svg>
-                  <span>Print / Save PDF</span>
-                </button>
-              </div>
-            </div>
           </div>
         </section>
       </div>
@@ -727,10 +693,60 @@
           </div>
 
           <div class="dash-header-controls">
+            <!-- Dropdown with all reports as per home page -->
+            <div class="report-dropdown-container dash-report-dropdown">
+              <select id="dashReportCategorySelect" class="report-category-select" title="Select report to download">
+                <optgroup label="📂 full-audit — All Diagnostics Unified">
+                  <option value="full-audit:xlsx" selected>full-audit / Excel Report (.xlsx)</option>
+                  <option value="full-audit:html">full-audit / Interactive HTML (.html)</option>
+                  <option value="full-audit:csv">full-audit / Summary CSV (.csv)</option>
+                  <option value="full-audit:json">full-audit / Complete JSON (.json)</option>
+                </optgroup>
+                <optgroup label="📂 404-status — Page Status & 404 Finder">
+                  <option value="404-status:xlsx">404-status / Excel Report (.xlsx)</option>
+                  <option value="404-status:html">404-status / HTML Dashboard (.html)</option>
+                  <option value="404-status:csv">404-status / Status CSV (.csv)</option>
+                  <option value="404-status:json">404-status / Status JSON (.json)</option>
+                </optgroup>
+                <optgroup label="📂 seo-metadata — SEO & Social Cards">
+                  <option value="seo-metadata:xlsx">seo-metadata / Excel Report (.xlsx)</option>
+                  <option value="seo-metadata:html">seo-metadata / HTML Report (.html)</option>
+                  <option value="seo-metadata:csv">seo-metadata / SEO CSV (.csv)</option>
+                  <option value="seo-metadata:json">seo-metadata / SEO JSON (.json)</option>
+                </optgroup>
+                <optgroup label="📂 page-speed — Web Vitals & Performance">
+                  <option value="page-speed:xlsx">page-speed / Excel Report (.xlsx)</option>
+                  <option value="page-speed:html">page-speed / HTML Report (.html)</option>
+                  <option value="page-speed:csv">page-speed / Speed CSV (.csv)</option>
+                  <option value="page-speed:json">page-speed / Speed JSON (.json)</option>
+                </optgroup>
+                <optgroup label="📂 images — Image Asset Quality">
+                  <option value="images:xlsx">images / Excel Report (.xlsx)</option>
+                  <option value="images:html">images / HTML Report (.html)</option>
+                  <option value="images:csv">images / Images CSV (.csv)</option>
+                  <option value="images:json">images / Images JSON (.json)</option>
+                </optgroup>
+                <optgroup label="📂 links — Hyperlinks & Redirections">
+                  <option value="links:xlsx">links / Excel Report (.xlsx)</option>
+                  <option value="links:html">links / HTML Report (.html)</option>
+                  <option value="links:csv">links / Links CSV (.csv)</option>
+                  <option value="links:json">links / Links JSON (.json)</option>
+                </optgroup>
+                <optgroup label="📂 apis — Dynamic APIs & Network Traffic">
+                  <option value="apis:xlsx">apis / Excel Report (.xlsx)</option>
+                  <option value="apis:html">apis / HTML Report (.html)</option>
+                  <option value="apis:csv">apis / APIs CSV (.csv)</option>
+                  <option value="apis:json">apis / APIs JSON (.json)</option>
+                </optgroup>
+              </select>
+            </div>
+
+            <!-- Download Report Button -->
             <button
               type="button"
-              class="btn-dash-export"
-              id="dashDownloadExcel"
+              class="btn-dash-download"
+              id="dashDownloadReportBtn"
+              title="Download Selected Report"
             >
               <svg
                 width="14"
@@ -740,13 +756,14 @@
                 stroke="currentColor"
                 stroke-width="2"
               >
-                <path
-                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-                />
-                <polyline points="14 2 14 8 20 8" />
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
-              <span>Export Excel</span>
+              <span>Download Report</span>
             </button>
+
+            <!-- Close Modal Button -->
             <button
               type="button"
               class="btn-dash-close"

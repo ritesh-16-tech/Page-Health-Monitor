@@ -67,14 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const metricTotal = document.getElementById('metricTotal');
 
   const openDashboardBtn = document.getElementById('openDashboardBtn');
-  const downloadExcelBtn = document.getElementById('downloadExcelBtn');
-  const downloadCsvBtn = document.getElementById('downloadCsvBtn');
-  const downloadJsonBtn = document.getElementById('downloadJsonBtn');
-  const downloadHtmlBtn = document.getElementById('downloadHtmlBtn');
-  const printReportBtn = document.getElementById('printReportBtn');
-
-  const moreExportsBtn = document.getElementById('moreExportsBtn');
-  const moreExportsMenu = document.getElementById('moreExportsMenu');
+  const reportCategorySelect = document.getElementById('reportCategorySelect');
+  const downloadSelectedReportBtn = document.getElementById('downloadSelectedReportBtn');
 
   const toggleAdvancedBtn = document.getElementById('toggleAdvancedBtn');
   const advancedDrawerContent = document.getElementById('advancedDrawerContent');
@@ -365,30 +359,143 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 5. Diagnostics Focus Selection Grid
+  // 5. Diagnostics Focus Selection Grid & Dynamic Report Dropdown Filtering
+  const REPORT_DEFINITIONS = {
+    'image': {
+      category: 'images',
+      label: '📂 images — Image Asset Quality',
+      options: [
+        { value: 'images:xlsx', label: 'images / Excel Report (.xlsx)' },
+        { value: 'images:html', label: 'images / Interactive HTML (.html)' },
+        { value: 'images:csv', label: 'images / Images CSV (.csv)' },
+        { value: 'images:json', label: 'images / Images JSON (.json)' }
+      ]
+    },
+    'seo': {
+      category: 'seo-metadata',
+      label: '📂 seo-metadata — SEO & Social Cards',
+      options: [
+        { value: 'seo-metadata:xlsx', label: 'seo-metadata / Excel Report (.xlsx)' },
+        { value: 'seo-metadata:html', label: 'seo-metadata / HTML Report (.html)' },
+        { value: 'seo-metadata:csv', label: 'seo-metadata / SEO CSV (.csv)' },
+        { value: 'seo-metadata:json', label: 'seo-metadata / SEO JSON (.json)' }
+      ]
+    },
+    'status': {
+      category: '404-status',
+      label: '📂 404-status — Page Status & 404 Finder',
+      options: [
+        { value: '404-status:xlsx', label: '404-status / Excel Report (.xlsx)' },
+        { value: '404-status:html', label: '404-status / HTML Dashboard (.html)' },
+        { value: '404-status:csv', label: '404-status / Status CSV (.csv)' },
+        { value: '404-status:json', label: '404-status / Status JSON (.json)' }
+      ]
+    },
+    'speed': {
+      category: 'page-speed',
+      label: '📂 page-speed — Web Vitals & Performance',
+      options: [
+        { value: 'page-speed:xlsx', label: 'page-speed / Excel Report (.xlsx)' },
+        { value: 'page-speed:html', label: 'page-speed / HTML Report (.html)' },
+        { value: 'page-speed:csv', label: 'page-speed / Speed CSV (.csv)' },
+        { value: 'page-speed:json', label: 'page-speed / Speed JSON (.json)' }
+      ]
+    },
+    'link': {
+      category: 'links',
+      label: '📂 links — Hyperlinks & Redirections',
+      options: [
+        { value: 'links:xlsx', label: 'links / Excel Report (.xlsx)' },
+        { value: 'links:html', label: 'links / HTML Report (.html)' },
+        { value: 'links:csv', label: 'links / Links CSV (.csv)' },
+        { value: 'links:json', label: 'links / Links JSON (.json)' }
+      ]
+    },
+    'api': {
+      category: 'apis',
+      label: '📂 apis — Dynamic APIs & Network Traffic',
+      options: [
+        { value: 'apis:xlsx', label: 'apis / Excel Report (.xlsx)' },
+        { value: 'apis:html', label: 'apis / HTML Report (.html)' },
+        { value: 'apis:csv', label: 'apis / APIs CSV (.csv)' },
+        { value: 'apis:json', label: 'apis / APIs JSON (.json)' }
+      ]
+    },
+    'all': {
+      category: 'full-audit',
+      label: '📂 full-audit — Complete Unified Audit',
+      options: [
+        { value: 'full-audit:xlsx', label: 'full-audit / Excel Report (.xlsx)' },
+        { value: 'full-audit:html', label: 'full-audit / Interactive HTML (.html)' },
+        { value: 'full-audit:csv', label: 'full-audit / Summary CSV (.csv)' },
+        { value: 'full-audit:json', label: 'full-audit / Complete JSON (.json)' }
+      ]
+    }
+  };
+
+  function updateReportDropdowns(focus) {
+    const normFocus = (focus || 'all').toLowerCase();
+    let key = 'all';
+    if (normFocus === 'image' || normFocus === 'images') key = 'image';
+    else if (normFocus === 'seo' || normFocus === 'seo-metadata') key = 'seo';
+    else if (normFocus === 'link' || normFocus === 'links') key = 'link';
+    else if (normFocus === 'api' || normFocus === 'apis' || normFocus === 'network') key = 'api';
+    else if (normFocus === 'status' || normFocus === '404' || normFocus === '404-status') key = 'status';
+    else if (normFocus === 'speed' || normFocus === 'page-speed' || normFocus === 'vitals') key = 'speed';
+    else key = 'all';
+
+    const def = REPORT_DEFINITIONS[key] || REPORT_DEFINITIONS['all'];
+
+    const optionsHtml = `
+      <optgroup label="${def.label}">
+        ${def.options.map((opt, idx) => `<option value="${opt.value}" ${idx === 0 ? 'selected' : ''}>${opt.label}</option>`).join('')}
+      </optgroup>
+    `;
+
+    const homeSelect = document.getElementById('reportCategorySelect');
+    const dashSelect = document.getElementById('dashReportCategorySelect');
+
+    if (homeSelect) {
+      homeSelect.innerHTML = optionsHtml;
+    }
+    if (dashSelect) {
+      dashSelect.innerHTML = optionsHtml;
+    }
+  }
+
+  window.updateReportDropdowns = updateReportDropdowns;
+
   diagCards.forEach(card => {
     card.addEventListener('click', () => {
       diagCards.forEach(c => c.classList.remove('active'));
       card.classList.add('active');
       const radio = card.querySelector('input[type="radio"]');
-      if (radio) radio.checked = true;
+      if (radio) {
+        radio.checked = true;
+        updateReportDropdowns(radio.value);
+      }
     });
   });
+
+  document.querySelectorAll('input[name="auditFocus"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      if (radio.checked) {
+        updateReportDropdowns(radio.value);
+      }
+    });
+  });
+
+  if (reportCategorySelect) {
+    reportCategorySelect.addEventListener('change', () => {
+      const dashSelect = document.getElementById('dashReportCategorySelect');
+      if (dashSelect) dashSelect.value = reportCategorySelect.value;
+    });
+  }
 
   // 6. Advanced Drawer Toggle
   toggleAdvancedBtn.addEventListener('click', () => {
     toggleAdvancedBtn.classList.toggle('open');
     advancedDrawerContent.classList.toggle('show');
-  });
-
-  // 7. More Exports Dropdown
-  moreExportsBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    moreExportsMenu.classList.toggle('show');
-  });
-
-  document.addEventListener('click', () => {
-    moreExportsMenu.classList.remove('show');
   });
 
   // 8. Terminal Logging Helpers
@@ -498,6 +605,9 @@ document.addEventListener('DOMContentLoaded', () => {
       );
 
       updateMetricsSummary(currentAuditResult);
+      if (typeof updateReportDropdowns === 'function') {
+        updateReportDropdowns(currentAuditResult.focus || auditOptions.focus);
+      }
       showToast('Diagnostic audit completed successfully!');
     } catch (err) {
       logTerminal(`Audit failed: ${err.message}`, 'error');
@@ -538,53 +648,22 @@ document.addEventListener('DOMContentLoaded', () => {
     window.PageSentinelDashboard.open(currentAuditResult);
   });
 
-  // 12. Export Report Handlers
-  downloadExcelBtn.addEventListener('click', () => {
-    if (!currentAuditResult) {
-      showToast('Please run an audit first to export Excel.', 'warning');
-      return;
-    }
-    window.PageSentinelExport.downloadExcel(currentAuditResult);
-    showToast('Downloading Excel report (.xlsx)...');
-  });
+  // 12. Download Selected Report Handler
+  if (downloadSelectedReportBtn) {
+    downloadSelectedReportBtn.addEventListener('click', () => {
+      if (!currentAuditResult) {
+        showToast('Please run an audit first before downloading reports.', 'warning');
+        return;
+      }
+      const rawVal = reportCategorySelect ? reportCategorySelect.value : 'full-audit:xlsx';
+      const parts = rawVal.split(':');
+      const category = parts[0] || 'full-audit';
+      const format = parts[1] || 'xlsx';
 
-  downloadCsvBtn.addEventListener('click', () => {
-    if (!currentAuditResult) {
-      showToast('Please run an audit first to export CSV.', 'warning');
-      return;
-    }
-    window.PageSentinelExport.downloadCSV(currentAuditResult);
-    showToast('Downloading CSV report (.csv)...');
-  });
-
-  downloadJsonBtn.addEventListener('click', () => {
-    if (!currentAuditResult) {
-      showToast('Please run an audit first to export JSON.', 'warning');
-      return;
-    }
-    window.PageSentinelExport.downloadJSON(currentAuditResult);
-    showToast('Downloading JSON report (.json)...');
-  });
-
-  downloadHtmlBtn.addEventListener('click', () => {
-    if (!currentAuditResult) {
-      showToast('Please run an audit first to export HTML report.', 'warning');
-      return;
-    }
-    window.PageSentinelExport.downloadHTMLReport(currentAuditResult);
-    showToast('Downloading HTML report...');
-  });
-
-  printReportBtn.addEventListener('click', () => {
-    if (!currentAuditResult) {
-      showToast('Please run an audit first to print.', 'warning');
-      return;
-    }
-    window.PageSentinelDashboard.open(currentAuditResult);
-    setTimeout(() => {
-      window.print();
-    }, 500);
-  });
+      window.PageSentinelExport.downloadSpecificReport(currentAuditResult, category, format);
+      showToast(`Downloading ${category} report (${format.toUpperCase()})...`);
+    });
+  }
 
   // Toast Notification System
   function showToast(message, type = 'success') {
@@ -604,6 +683,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 3500);
   }
 
+  window.showToast = showToast;
+
   function escapeHtml(str) {
     if (!str) return '';
     return String(str)
@@ -622,6 +703,11 @@ document.addEventListener('DOMContentLoaded', () => {
     clearTerminal();
     logTerminal('Page-Health-Monitor v1.0 diagnostic auditor ready.', 'info');
     logTerminal('Select an audit source above (Single URL, Sitemap XML, Bulk File, or Add URLs) and click "Run Audit".', 'muted');
+
+    const activeFocusRadio = document.querySelector('input[name="auditFocus"]:checked');
+    if (typeof updateReportDropdowns === 'function') {
+      updateReportDropdowns(activeFocusRadio ? activeFocusRadio.value : 'all');
+    }
   }
 
   setInitialReferenceState();

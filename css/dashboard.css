@@ -101,18 +101,40 @@
   gap: 10px;
 }
 
-.btn-dash-export {
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid rgba(59, 130, 246, 0.4);
-  color: #93c5fd;
-  padding: 8px 14px;
-  font-size: 0.8rem;
+.dash-report-dropdown {
+  min-width: 250px;
+}
+
+.dash-report-dropdown .report-category-select {
+  padding: 8px 32px 8px 12px;
+  font-size: 0.78rem;
+  background-color: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #f1f5f9;
   border-radius: var(--radius-md);
 }
 
-.btn-dash-export:hover {
-  background: var(--primary);
+.btn-dash-download {
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.3) 0%, rgba(30, 58, 138, 0.4) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.5);
   color: #ffffff;
+  padding: 8px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.btn-dash-download:hover {
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+  transform: translateY(-1px);
 }
 
 .btn-dash-close {
@@ -123,6 +145,12 @@
   height: 36px;
   border-radius: 50%;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
 }
 
 .btn-dash-close:hover {
