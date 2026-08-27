@@ -73,6 +73,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const toggleAdvancedBtn = document.getElementById('toggleAdvancedBtn');
   const advancedDrawerContent = document.getElementById('advancedDrawerContent');
 
+  // Reset preview report data and scorecard metrics
+  function resetAuditResults() {
+    currentAuditResult = null;
+    if (window.PageSentinelDashboard) {
+      window.PageSentinelDashboard.currentData = null;
+    }
+    if (metricPages) metricPages.textContent = '0';
+    if (metricCritical) metricCritical.textContent = '0';
+    if (metricWarnings) metricWarnings.textContent = '0';
+    if (metricTotal) metricTotal.textContent = '0';
+  }
+
   // 1. Audit Source Mode Switcher
   auditSourceMode.addEventListener('change', () => {
     const mode = auditSourceMode.value;
@@ -85,6 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (mode === 'sitemap') panelModeSitemap.classList.remove('hidden');
     else if (mode === 'file') panelModeFile.classList.remove('hidden');
     else if (mode === 'manual') panelModeManual.classList.remove('hidden');
+
+    resetAuditResults();
   });
 
   // 2. Single URL Input & Clear Button
@@ -95,11 +109,15 @@ document.addEventListener('DOMContentLoaded', () => {
       clearUrlBtn.classList.add('hidden');
     }
   }
-  auditUrlInput.addEventListener('input', updateClearBtn);
+  auditUrlInput.addEventListener('input', () => {
+    updateClearBtn();
+    resetAuditResults();
+  });
   clearUrlBtn.addEventListener('click', () => {
     auditUrlInput.value = '';
     auditUrlInput.focus();
     updateClearBtn();
+    resetAuditResults();
   });
 
   // Sitemap Auto-Crawl Toggle
@@ -111,11 +129,13 @@ document.addEventListener('DOMContentLoaded', () => {
   sitemapUrlInput.addEventListener('input', () => {
     if (sitemapUrlInput.value.trim().length > 0) clearSitemapUrlBtn.classList.remove('hidden');
     else clearSitemapUrlBtn.classList.add('hidden');
+    resetAuditResults();
   });
   clearSitemapUrlBtn.addEventListener('click', () => {
     sitemapUrlInput.value = '';
     sitemapUrlInput.focus();
     clearSitemapUrlBtn.classList.add('hidden');
+    resetAuditResults();
   });
 
   // 3. Bulk File Upload (.txt, .csv, .xlsx, .xls, .json)
@@ -189,6 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
       fileQueueStatus.classList.remove('hidden');
 
       renderFileUrlChips(urls);
+      resetAuditResults();
       showToast(`Loaded ${urls.length} URLs from ${fileName}`);
     } catch (err) {
       showToast(`Failed to parse file: ${err.message}`, 'error');
@@ -208,6 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadedFileUrls = [];
     fileQueueStatus.classList.add('hidden');
     bulkFileInput.value = '';
+    resetAuditResults();
     showToast('File queue cleared.');
   });
 
@@ -235,6 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
       manualUrlInput.value = '';
       manualUrlInput.focus();
       renderManualUrlChips();
+      resetAuditResults();
       showToast(addedCount === 1 ? `Added: ${candidateUrls[0]}` : `Added ${addedCount} URLs to queue.`);
     } else {
       showToast('Please enter valid, unique URL(s).', 'warning');
@@ -267,6 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
   clearManualQueueBtn.addEventListener('click', () => {
     manualQueuedUrls = [];
     renderManualUrlChips();
+    resetAuditResults();
     showToast('Cleared queued URLs.');
   });
 
@@ -596,6 +620,7 @@ document.addEventListener('DOMContentLoaded', () => {
     runAuditBtn.querySelector('.btn-text').textContent = 'Auditing...';
     cancelAuditBtn.classList.remove('hidden');
     clearTerminal();
+    resetAuditResults();
 
     try {
       currentAuditResult = await window.PageSentinelAuditEngine.runAudit(
