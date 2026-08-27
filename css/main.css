@@ -23,7 +23,7 @@
   --primary-hover: #2563eb;
   --primary-active: #1d4ed8;
   --primary-glow: rgba(59, 130, 246, 0.25);
-  
+
   --critical: #ef4444;
   --critical-bg: rgba(239, 68, 68, 0.12);
   --critical-border: rgba(239, 68, 68, 0.3);
@@ -49,11 +49,15 @@
   --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
   --shadow-glow: 0 0 25px rgba(59, 130, 246, 0.18);
 
-  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  --font-sans:
+    "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -70,9 +74,17 @@ body {
   flex-direction: column;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-image: 
-    radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.08) 0%, transparent 60%),
-    radial-gradient(circle at 100% 100%, rgba(99, 102, 241, 0.04) 0%, transparent 50%);
+  background-image:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(59, 130, 246, 0.08) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      circle at 100% 100%,
+      rgba(99, 102, 241, 0.04) 0%,
+      transparent 50%
+    );
   background-attachment: fixed;
 }
 
@@ -90,7 +102,7 @@ body {
 }
 
 .header-container {
-  max-width: 900px;
+  max-width: 1300px;
   margin: 0 auto;
   padding: 16px 20px;
   display: flex;
@@ -109,7 +121,11 @@ body {
   width: 42px;
   height: 42px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(30, 58, 138, 0.3));
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.2),
+    rgba(30, 58, 138, 0.3)
+  );
   border: 1px solid rgba(59, 130, 246, 0.4);
   display: flex;
   align-items: center;
@@ -155,7 +171,8 @@ body {
    Buttons & Dropdown Utilities
    =================================================================== */
 
-button, .btn {
+button,
+.btn {
   font-family: var(--font-sans);
   cursor: pointer;
   border: none;
@@ -170,7 +187,8 @@ button, .btn {
   text-decoration: none;
 }
 
-.btn-secondary, .file-import-label {
+.btn-secondary,
+.file-import-label {
   background: rgba(30, 41, 59, 0.7);
   color: var(--text-main);
   border: 1px solid var(--border-color);
@@ -180,7 +198,8 @@ button, .btn {
   cursor: pointer;
 }
 
-.btn-secondary:hover, .file-import-label:hover {
+.btn-secondary:hover,
+.file-import-label:hover {
   background: var(--bg-card-hover);
   border-color: var(--border-color-light);
   color: #ffffff;
@@ -193,7 +212,8 @@ button, .btn {
 }
 
 /* Dropdown Menu */
-.preset-dropdown-wrapper, .dropdown-wrapper {
+.preset-dropdown-wrapper,
+.dropdown-wrapper {
   position: relative;
 }
 
@@ -269,7 +289,7 @@ button, .btn {
 
 .main-wrapper {
   flex: 1;
-  max-width: 900px;
+  max-width: 1300px;
   width: 100%;
   margin: 24px auto 48px;
   padding: 0 20px;
@@ -365,7 +385,8 @@ button, .btn {
   gap: 8px;
 }
 
-.file-drop-zone:hover, .file-drop-zone.dragover {
+.file-drop-zone:hover,
+.file-drop-zone.dragover {
   border-color: var(--primary);
   background: rgba(59, 130, 246, 0.08);
   transform: translateY(-1px);
@@ -390,7 +411,8 @@ button, .btn {
 }
 
 /* File Queue Status & URL Chips */
-.file-queue-status, .manual-queue-container {
+.file-queue-status,
+.manual-queue-container {
   margin-top: 14px;
   background: #0f1523;
   border: 1px solid var(--border-color);
@@ -398,7 +420,8 @@ button, .btn {
   padding: 12px 14px;
 }
 
-.file-status-header, .queue-header {
+.file-status-header,
+.queue-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -806,7 +829,8 @@ button, .btn {
   transform: translateY(-1px);
 }
 
-.diag-card.active, .diag-card input:checked ~ .diag-radio-indicator {
+.diag-card.active,
+.diag-card input:checked ~ .diag-radio-indicator {
   border-color: var(--primary);
 }
 
@@ -916,7 +940,9 @@ button, .btn {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ===================================================================
@@ -1069,7 +1095,11 @@ button, .btn {
 .btn-download-action {
   flex: 1;
   min-width: 190px;
-  background: linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(30, 41, 59, 0.95) 0%,
+    rgba(15, 23, 42, 0.95) 100%
+  );
   border: 1px solid rgba(59, 130, 246, 0.4);
   color: #ffffff;
   display: inline-flex;
@@ -1080,7 +1110,11 @@ button, .btn {
 }
 
 .btn-download-action:hover {
-  background: linear-gradient(180deg, rgba(59, 130, 246, 0.25) 0%, rgba(37, 99, 235, 0.2) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(59, 130, 246, 0.25) 0%,
+    rgba(37, 99, 235, 0.2) 100%
+  );
   border-color: #3b82f6;
   color: #ffffff;
   transform: translateY(-1px);
@@ -1168,7 +1202,8 @@ button, .btn {
   .summary-actions-row {
     flex-direction: column;
   }
-  .btn-primary-blue, .btn-dark-glass {
+  .btn-primary-blue,
+  .btn-dark-glass {
     width: 100%;
   }
 }
