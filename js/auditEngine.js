@@ -211,6 +211,7 @@ window.PageSentinelAuditEngine = {
     let statusText = 'OK';
     let contentType = 'text/html';
 
+    let fetchFailed = false;
     try {
       const response = await this.fetchWithCorsFallback(pageUrl, corsProxy);
       html = response.html;
@@ -218,12 +219,19 @@ window.PageSentinelAuditEngine = {
       statusText = response.statusText || 'OK';
       contentType = response.contentType || 'text/html';
     } catch (e) {
+      fetchFailed = true;
       log(`Direct network fetch failed for ${pageUrl}: ${e.message}`, 'warning');
       html = this.generateSyntheticHtml(pageUrl);
+      httpStatus = 0;
+      statusText = 'CORS_BLOCKED';
     }
 
     const ttfbMs = Math.round(performance.now() - fetchStart);
-    log(`Fetched ${pageUrl} in ${ttfbMs}ms (HTTP ${httpStatus})`, 'success');
+    if (!fetchFailed) {
+      log(`Fetched ${pageUrl} in ${ttfbMs}ms (HTTP ${httpStatus})`, 'success');
+    } else {
+      log(`Page audit using synthetic probe for ${pageUrl} (CORS blocked — start local UI server for full access)`, 'warning');
+    }
 
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
@@ -507,72 +515,82 @@ window.PageSentinelAuditEngine = {
     }
 
     // 4. Fire ALL public CORS proxies in PARALLEL — resolve on the FIRST success.
-    //    Promise.any() is dramatically faster than sequential: if any proxy responds
-    //    in 3s we're done immediately, instead of waiting 12s × 6 = 72s serially.
+    //    Uses Promise.any() so we get the fastest responder without waiting 12s×6.
+    //    Includes one automatic retry with 3s backoff: proxies sometimes reject the
+    //    first batch (cold start / rate limit) but reliably succeed on the second.
     const encoded = encodeURIComponent(url);
-    const PROXY_TIMEOUT = 30000; // each proxy gets up to 30s, but we take the fastest
+    const PROXY_TIMEOUT = 30000;
 
+    const buildProxyRace = () => Promise.any([
+
+      // corsproxy.io — handles most CDN-protected sites
+      (async () => {
+        const res = await fetch(`https://corsproxy.io/?${encoded}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
+        if (!res.ok) throw new Error(`corsproxy.io HTTP ${res.status}`);
+        const text = await res.text();
+        if (!text || text.length === 0) throw new Error('corsproxy.io empty');
+        return { html: text, status: res.status, statusText: 'OK', contentType: res.headers.get('content-type') || 'text/html' };
+      })(),
+
+      // allorigins /raw — direct passthrough, most stable endpoint
+      (async () => {
+        const res = await fetch(`https://api.allorigins.win/raw?url=${encoded}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
+        if (!res.ok) throw new Error(`allorigins/raw HTTP ${res.status}`);
+        const text = await res.text();
+        if (!text || text.length === 0) throw new Error('allorigins/raw empty');
+        return { html: text, status: 200, statusText: 'OK', contentType: res.headers.get('content-type') || 'text/html' };
+      })(),
+
+      // allorigins /get — JSON wrapper, useful when /raw is rate-limited
+      (async () => {
+        const res = await fetch(`https://api.allorigins.win/get?url=${encoded}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
+        if (!res.ok) throw new Error(`allorigins/get HTTP ${res.status}`);
+        const data = await res.json();
+        if (!data || !data.contents) throw new Error('allorigins/get no contents');
+        return { html: data.contents, status: data.status?.http_code || 200, statusText: 'OK', contentType: 'text/html' };
+      })(),
+
+      // codetabs proxy
+      (async () => {
+        const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encoded}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
+        if (!res.ok) throw new Error(`codetabs HTTP ${res.status}`);
+        const text = await res.text();
+        if (!text || text.length === 0 || text.includes('Error 522') || text.includes('Too Many Requests')) throw new Error('codetabs bad response');
+        return { html: text, status: res.status, statusText: 'OK', contentType: 'text/html' };
+      })(),
+
+      // thingproxy
+      (async () => {
+        const res = await fetch(`https://thingproxy.freeboard.io/fetch/${url}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
+        if (!res.ok) throw new Error(`thingproxy HTTP ${res.status}`);
+        const text = await res.text();
+        if (!text || text.length === 0) throw new Error('thingproxy empty');
+        return { html: text, status: res.status, statusText: 'OK', contentType: 'text/html' };
+      })(),
+
+      // jsonp.afeld.me
+      (async () => {
+        const res = await fetch(`https://jsonp.afeld.me/?url=${encoded}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
+        if (!res.ok) throw new Error(`jsonp.afeld.me HTTP ${res.status}`);
+        const text = await res.text();
+        if (!text || text.length === 0) throw new Error('jsonp.afeld.me empty');
+        return { html: text, status: res.status, statusText: 'OK', contentType: 'text/html' };
+      })(),
+
+    ]);
+
+    // First attempt
     try {
-      return await Promise.any([
-
-        // corsproxy.io — handles most CDN-protected sites
-        (async () => {
-          const res = await fetch(`https://corsproxy.io/?${encoded}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
-          if (!res.ok) throw new Error(`corsproxy.io HTTP ${res.status}`);
-          const text = await res.text();
-          if (!text || text.length === 0) throw new Error('corsproxy.io empty');
-          return { html: text, status: res.status, statusText: 'OK', contentType: res.headers.get('content-type') || 'text/html' };
-        })(),
-
-        // allorigins /raw — direct passthrough, most stable endpoint
-        (async () => {
-          const res = await fetch(`https://api.allorigins.win/raw?url=${encoded}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
-          if (!res.ok) throw new Error(`allorigins/raw HTTP ${res.status}`);
-          const text = await res.text();
-          if (!text || text.length === 0) throw new Error('allorigins/raw empty');
-          return { html: text, status: 200, statusText: 'OK', contentType: res.headers.get('content-type') || 'text/html' };
-        })(),
-
-        // allorigins /get — JSON wrapper, useful when /raw is rate-limited
-        (async () => {
-          const res = await fetch(`https://api.allorigins.win/get?url=${encoded}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
-          if (!res.ok) throw new Error(`allorigins/get HTTP ${res.status}`);
-          const data = await res.json();
-          if (!data || !data.contents) throw new Error('allorigins/get no contents');
-          return { html: data.contents, status: data.status?.http_code || 200, statusText: 'OK', contentType: 'text/html' };
-        })(),
-
-        // codetabs proxy
-        (async () => {
-          const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encoded}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
-          if (!res.ok) throw new Error(`codetabs HTTP ${res.status}`);
-          const text = await res.text();
-          if (!text || text.length === 0 || text.includes('Error 522') || text.includes('Too Many Requests')) throw new Error('codetabs bad response');
-          return { html: text, status: res.status, statusText: 'OK', contentType: 'text/html' };
-        })(),
-
-        // thingproxy
-        (async () => {
-          const res = await fetch(`https://thingproxy.freeboard.io/fetch/${url}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
-          if (!res.ok) throw new Error(`thingproxy HTTP ${res.status}`);
-          const text = await res.text();
-          if (!text || text.length === 0) throw new Error('thingproxy empty');
-          return { html: text, status: res.status, statusText: 'OK', contentType: 'text/html' };
-        })(),
-
-        // jsonp.afeld.me
-        (async () => {
-          const res = await fetch(`https://jsonp.afeld.me/?url=${encoded}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
-          if (!res.ok) throw new Error(`jsonp.afeld.me HTTP ${res.status}`);
-          const text = await res.text();
-          if (!text || text.length === 0) throw new Error('jsonp.afeld.me empty');
-          return { html: text, status: res.status, statusText: 'OK', contentType: 'text/html' };
-        })(),
-
-      ]);
-    } catch (e) {
-      // AggregateError — every single proxy failed
-      throw new Error('Unable to fetch live external URL (All CORS proxies unavailable).');
+      return await buildProxyRace();
+    } catch (firstErr) {
+      // All proxies rejected on first attempt — wait 3s and retry once.
+      // Proxies often reject cold-start / rate-limit bursts but accept the retry.
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      try {
+        return await buildProxyRace();
+      } catch (finalErr) {
+        throw new Error('Unable to fetch live external URL (All CORS proxies unavailable).');
+      }
     }
   },
 
