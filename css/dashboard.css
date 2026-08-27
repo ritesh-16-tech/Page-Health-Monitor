@@ -115,7 +115,11 @@
 }
 
 .btn-dash-download {
-  background: linear-gradient(180deg, rgba(37, 99, 235, 0.3) 0%, rgba(30, 58, 138, 0.4) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(37, 99, 235, 0.3) 0%,
+    rgba(30, 58, 138, 0.4) 100%
+  );
   border: 1px solid rgba(59, 130, 246, 0.5);
   color: #ffffff;
   padding: 8px 14px;
@@ -199,7 +203,7 @@
 }
 
 .text-score {
-  color: #38bdf8;
+  color: #38bdf8;.dash-tab-btn
 }
 
 .text-primary-acc {
@@ -210,8 +214,7 @@
 .dash-tabs-nav {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 24px 0;
+  padding: 0px 5px 0;
   background: #0f1523;
   border-bottom: 1px solid var(--border-color);
   overflow-x: auto;
@@ -235,7 +238,7 @@
 .dash-tab-btn {
   background: transparent;
   color: var(--text-secondary);
-  padding: 10px 14px;
+  padding: 11px 7px;
   font-size: 0.82rem;
   font-weight: 600;
   border-radius: var(--radius-md) var(--radius-md) 0 0;
@@ -243,7 +246,7 @@
   border-bottom: none;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 3px;
   white-space: nowrap;
   flex-shrink: 0;
   cursor: pointer;
@@ -589,7 +592,9 @@
   border: 1px solid var(--warnings-border);
 }
 
-.status-400, .status-500, .status-error {
+.status-400,
+.status-500,
+.status-error {
   background: var(--critical-bg);
   color: #f87171;
   border: 1px solid var(--critical-border);
@@ -756,11 +761,13 @@
   color: #34d399;
 }
 
-.vital-box.vital-warn .vital-val, .vital-box.vital-warn .vital-status {
+.vital-box.vital-warn .vital-val,
+.vital-box.vital-warn .vital-status {
   color: #fbbf24;
 }
 
-.vital-box.vital-bad .vital-val, .vital-box.vital-bad .vital-status {
+.vital-box.vital-bad .vital-val,
+.vital-box.vital-bad .vital-status {
   color: #f87171;
 }
 
@@ -792,11 +799,21 @@
   background: var(--primary);
 }
 
-.payload-fill.fill-js { background: #f59e0b; }
-.payload-fill.fill-img { background: #3b82f6; }
-.payload-fill.fill-css { background: #ec4899; }
-.payload-fill.fill-font { background: #10b981; }
-.payload-fill.fill-api { background: #8b5cf6; }
+.payload-fill.fill-js {
+  background: #f59e0b;
+}
+.payload-fill.fill-img {
+  background: #3b82f6;
+}
+.payload-fill.fill-css {
+  background: #ec4899;
+}
+.payload-fill.fill-font {
+  background: #10b981;
+}
+.payload-fill.fill-api {
+  background: #8b5cf6;
+}
 
 /* ===================================================================
    TAB 8: Console Logs & Trace
@@ -829,8 +846,12 @@
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @media (max-width: 900px) {
