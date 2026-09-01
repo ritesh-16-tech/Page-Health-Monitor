@@ -467,8 +467,23 @@ window.PageSentinelAuditEngine = {
     };
   },
 
+  // Memoized load of the GitHub Actions prefetch cache — shared across every
+  // fetchWithCorsFallback() call in this audit run so the JSON is only
+  // fetched once, not once per page/sitemap.
+  _prefetchCachePromise: null,
+
+  async loadPrefetchCache() {
+    if (!this._prefetchCachePromise) {
+      this._prefetchCachePromise = fetch('data/prefetch-cache.json', { cache: 'no-store' })
+        .then(res => (res.ok ? res.json() : null))
+        .catch(() => null);
+    }
+    return this._prefetchCachePromise;
+  },
+
   /**
-   * Fetches URL with local server proxy and multi-proxy fallback
+   * Fetches URL with local server proxy, GitHub Actions prefetch cache, and
+   * multi-proxy fallback
    */
   async fetchWithCorsFallback(url, preferredProxy = 'auto') {
     // 1. Always try the local Node proxy first — works on localhost regardless of port
@@ -490,7 +505,32 @@ window.PageSentinelAuditEngine = {
       // Local server not running or returned non-JSON — fall through to public proxies
     }
 
-    // 2. Direct fetch if direct mode or same host
+    // 2. Check the server-side prefetch cache written by
+    //    .github/workflows/prefetch-cache.yml (see scripts/prefetchCache.mjs).
+    //    That workflow runs on a real GitHub-hosted runner — genuine outbound
+    //    HTTP, no CORS, no dependency on free public proxies — for the URLs
+    //    listed in data/prefetch-targets.json. This is a same-origin JSON
+    //    fetch, always allowed on GitHub Pages, so it's tried before any
+    //    cross-origin attempt. Silently falls through if the cache file
+    //    doesn't exist yet or doesn't have this URL.
+    try {
+      const cache = await this.loadPrefetchCache();
+      const cached = cache && cache[url];
+      if (cached && typeof cached.html === 'string' && cached.html.length > 0) {
+        return {
+          html: cached.html,
+          status: cached.status || 200,
+          statusText: cached.statusText || 'OK',
+          contentType: cached.contentType || 'text/html',
+          fromPrefetchCache: true,
+          cachedAt: cached.fetchedAt
+        };
+      }
+    } catch (e) {
+      // No cache file, or this URL isn't in it — fall through to live fetch.
+    }
+
+    // 3. Direct fetch if direct mode or same host
     if (preferredProxy === 'direct' || url.includes('localhost') || url.includes('127.0.0.1')) {
       try {
         const res = await fetch(url, { mode: 'cors' });
@@ -501,7 +541,7 @@ window.PageSentinelAuditEngine = {
       }
     }
 
-    // 3. Try direct CORS fetch (works if target server sends CORS headers)
+    // 4. Try direct CORS fetch (works if target server sends CORS headers)
     if (preferredProxy === 'auto') {
       try {
         const res = await fetch(url, { mode: 'cors', signal: AbortSignal.timeout(8000) });
@@ -514,7 +554,7 @@ window.PageSentinelAuditEngine = {
       }
     }
 
-    // 4. Fire public CORS proxies in PARALLEL — resolve on the FIRST success.
+    // 5. Fire public CORS proxies in PARALLEL — resolve on the FIRST success.
     //    Uses Promise.any() so we get the fastest responder without waiting on all of them.
     //    Runs up to 3 rounds with growing backoff: free proxies often reject a cold-start
     //    or rate-limited burst but succeed a few seconds later.
@@ -619,7 +659,11 @@ window.PageSentinelAuditEngine = {
         const { pageUrls, subSitemaps } = this.extractSitemapEntries(content);
 
         if (processedSitemaps.size === 1 && log) {
-          log(`Fetched ${currentSitemap} in ${response.status || 200} (HTTP ${response.status || 200})`, 'success');
+          if (response.fromPrefetchCache) {
+            log(`Using GitHub Actions prefetch cache for ${currentSitemap} (captured ${response.cachedAt || 'recently'} — no live/proxy fetch needed)`, 'success');
+          } else {
+            log(`Fetched ${currentSitemap} in ${response.status || 200} (HTTP ${response.status || 200})`, 'success');
+          }
         }
 
         pageUrls.forEach(u => discoveredUrls.add(u));
