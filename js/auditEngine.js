@@ -514,84 +514,86 @@ window.PageSentinelAuditEngine = {
       }
     }
 
-    // 4. Fire ALL public CORS proxies in PARALLEL — resolve on the FIRST success.
-    //    Uses Promise.any() so we get the fastest responder without waiting 12s×6.
-    //    Includes one automatic retry with 3s backoff: proxies sometimes reject the
-    //    first batch (cold start / rate limit) but reliably succeed on the second.
+    // 4. Fire public CORS proxies in PARALLEL — resolve on the FIRST success.
+    //    Uses Promise.any() so we get the fastest responder without waiting on all of them.
+    //    Runs up to 3 rounds with growing backoff: free proxies often reject a cold-start
+    //    or rate-limited burst but succeed a few seconds later.
+    //
+    //    `thingproxy.freeboard.io` and `jsonp.afeld.me` were removed from this list —
+    //    both are effectively dead/unmaintained and were causing every race to lose time
+    //    waiting on guaranteed failures. corsproxy.io's endpoint was also fixed: it now
+    //    requires the target URL in a `url=` query param (`?url=<encoded>`), not appended
+    //    directly after `?` — the old format is silently rejected by their API.
     const encoded = encodeURIComponent(url);
     const PROXY_TIMEOUT = 30000;
 
-    const buildProxyRace = () => Promise.any([
+    const PROXIES = [
+      {
+        name: 'corsproxy.io',
+        run: async () => {
+          const res = await fetch(`https://corsproxy.io/?url=${encoded}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
+          if (!res.ok) throw new Error(`corsproxy.io HTTP ${res.status}`);
+          const text = await res.text();
+          if (!text || text.length === 0) throw new Error('corsproxy.io empty');
+          return { html: text, status: res.status, statusText: 'OK', contentType: res.headers.get('content-type') || 'text/html' };
+        }
+      },
+      {
+        name: 'allorigins/raw',
+        run: async () => {
+          const res = await fetch(`https://api.allorigins.win/raw?url=${encoded}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
+          if (!res.ok) throw new Error(`allorigins/raw HTTP ${res.status}`);
+          const text = await res.text();
+          if (!text || text.length === 0) throw new Error('allorigins/raw empty');
+          return { html: text, status: 200, statusText: 'OK', contentType: res.headers.get('content-type') || 'text/html' };
+        }
+      },
+      {
+        name: 'allorigins/get',
+        run: async () => {
+          const res = await fetch(`https://api.allorigins.win/get?url=${encoded}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
+          if (!res.ok) throw new Error(`allorigins/get HTTP ${res.status}`);
+          const data = await res.json();
+          if (!data || !data.contents) throw new Error('allorigins/get no contents');
+          return { html: data.contents, status: data.status?.http_code || 200, statusText: 'OK', contentType: 'text/html' };
+        }
+      },
+      {
+        name: 'codetabs',
+        run: async () => {
+          const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encoded}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
+          if (!res.ok) throw new Error(`codetabs HTTP ${res.status}`);
+          const text = await res.text();
+          if (!text || text.length === 0 || text.includes('Error 522') || text.includes('Too Many Requests')) throw new Error('codetabs bad response');
+          return { html: text, status: res.status, statusText: 'OK', contentType: 'text/html' };
+        }
+      },
+    ];
 
-      // corsproxy.io — handles most CDN-protected sites
-      (async () => {
-        const res = await fetch(`https://corsproxy.io/?${encoded}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
-        if (!res.ok) throw new Error(`corsproxy.io HTTP ${res.status}`);
-        const text = await res.text();
-        if (!text || text.length === 0) throw new Error('corsproxy.io empty');
-        return { html: text, status: res.status, statusText: 'OK', contentType: res.headers.get('content-type') || 'text/html' };
-      })(),
+    const buildProxyRace = () => Promise.any(PROXIES.map(p =>
+      p.run().catch(e => { throw new Error(`${p.name}: ${e.message}`); })
+    ));
 
-      // allorigins /raw — direct passthrough, most stable endpoint
-      (async () => {
-        const res = await fetch(`https://api.allorigins.win/raw?url=${encoded}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
-        if (!res.ok) throw new Error(`allorigins/raw HTTP ${res.status}`);
-        const text = await res.text();
-        if (!text || text.length === 0) throw new Error('allorigins/raw empty');
-        return { html: text, status: 200, statusText: 'OK', contentType: res.headers.get('content-type') || 'text/html' };
-      })(),
-
-      // allorigins /get — JSON wrapper, useful when /raw is rate-limited
-      (async () => {
-        const res = await fetch(`https://api.allorigins.win/get?url=${encoded}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
-        if (!res.ok) throw new Error(`allorigins/get HTTP ${res.status}`);
-        const data = await res.json();
-        if (!data || !data.contents) throw new Error('allorigins/get no contents');
-        return { html: data.contents, status: data.status?.http_code || 200, statusText: 'OK', contentType: 'text/html' };
-      })(),
-
-      // codetabs proxy
-      (async () => {
-        const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encoded}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
-        if (!res.ok) throw new Error(`codetabs HTTP ${res.status}`);
-        const text = await res.text();
-        if (!text || text.length === 0 || text.includes('Error 522') || text.includes('Too Many Requests')) throw new Error('codetabs bad response');
-        return { html: text, status: res.status, statusText: 'OK', contentType: 'text/html' };
-      })(),
-
-      // thingproxy
-      (async () => {
-        const res = await fetch(`https://thingproxy.freeboard.io/fetch/${url}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
-        if (!res.ok) throw new Error(`thingproxy HTTP ${res.status}`);
-        const text = await res.text();
-        if (!text || text.length === 0) throw new Error('thingproxy empty');
-        return { html: text, status: res.status, statusText: 'OK', contentType: 'text/html' };
-      })(),
-
-      // jsonp.afeld.me
-      (async () => {
-        const res = await fetch(`https://jsonp.afeld.me/?url=${encoded}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
-        if (!res.ok) throw new Error(`jsonp.afeld.me HTTP ${res.status}`);
-        const text = await res.text();
-        if (!text || text.length === 0) throw new Error('jsonp.afeld.me empty');
-        return { html: text, status: res.status, statusText: 'OK', contentType: 'text/html' };
-      })(),
-
-    ]);
-
-    // First attempt
-    try {
-      return await buildProxyRace();
-    } catch (firstErr) {
-      // All proxies rejected on first attempt — wait 3s and retry once.
-      // Proxies often reject cold-start / rate-limit bursts but accept the retry.
-      await new Promise(resolve => setTimeout(resolve, 3000));
+    // Up to 3 attempts with growing backoff (0s, 3s, 8s) before giving up.
+    const BACKOFFS_MS = [0, 3000, 8000];
+    let lastAggregateError = null;
+    for (let attempt = 0; attempt < BACKOFFS_MS.length; attempt++) {
+      if (BACKOFFS_MS[attempt] > 0) {
+        await new Promise(resolve => setTimeout(resolve, BACKOFFS_MS[attempt]));
+      }
       try {
         return await buildProxyRace();
-      } catch (finalErr) {
-        throw new Error('Unable to fetch live external URL (All CORS proxies unavailable).');
+      } catch (aggregateErr) {
+        lastAggregateError = aggregateErr;
       }
     }
+
+    // All rounds failed — surface each proxy's individual reason instead of a
+    // single generic message, so a real outage vs. a config/URL bug is obvious from the log.
+    const reasons = (lastAggregateError?.errors || [lastAggregateError])
+      .map(e => e?.message || String(e))
+      .join(' | ');
+    throw new Error(`Unable to fetch live external URL (All CORS proxies unavailable): ${reasons}`);
   },
 
   /**
