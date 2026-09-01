@@ -519,25 +519,23 @@ window.PageSentinelAuditEngine = {
     //    Runs up to 3 rounds with growing backoff: free proxies often reject a cold-start
     //    or rate-limited burst but succeed a few seconds later.
     //
-    //    `thingproxy.freeboard.io` and `jsonp.afeld.me` were removed from this list —
-    //    both are effectively dead/unmaintained and were causing every race to lose time
-    //    waiting on guaranteed failures. corsproxy.io's endpoint was also fixed: it now
-    //    requires the target URL in a `url=` query param (`?url=<encoded>`), not appended
-    //    directly after `?` — the old format is silently rejected by their API.
+    //    `thingproxy.freeboard.io` and `jsonp.afeld.me` were removed — both are
+    //    effectively dead/unmaintained and were wasting time waiting on guaranteed
+    //    failures. `corsproxy.io` was also removed: it now returns HTTP 401 for
+    //    unauthenticated requests (they started requiring a paid API key), so keeping
+    //    it in the race only slowed things down for a call that can never succeed
+    //    without a key. If corsproxy.io ever adds a working free tier again, its
+    //    correct request format is `corsproxy.io/?url=<encoded>` (not bare `?<encoded>`).
+    //
+    //    NOTE: if `allorigins`/`codetabs` are failing with a generic "Failed to fetch"
+    //    (not an HTTP error code) on your network, that's usually a local/corporate
+    //    firewall, proxy, or browser extension blocking known CORS-proxy domains —
+    //    not the services themselves being down. Worth testing the same proxy URL
+    //    directly in the browser address bar from that network to confirm.
     const encoded = encodeURIComponent(url);
     const PROXY_TIMEOUT = 30000;
 
     const PROXIES = [
-      {
-        name: 'corsproxy.io',
-        run: async () => {
-          const res = await fetch(`https://corsproxy.io/?url=${encoded}`, { signal: AbortSignal.timeout(PROXY_TIMEOUT) });
-          if (!res.ok) throw new Error(`corsproxy.io HTTP ${res.status}`);
-          const text = await res.text();
-          if (!text || text.length === 0) throw new Error('corsproxy.io empty');
-          return { html: text, status: res.status, statusText: 'OK', contentType: res.headers.get('content-type') || 'text/html' };
-        }
-      },
       {
         name: 'allorigins/raw',
         run: async () => {
